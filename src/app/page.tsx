@@ -1,95 +1,126 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <main>
+      {/* Hero Section */}
+      <section className="grid hero">
+        <div className="panel col-12">
+          <h1 className="h1">Read. Connect. Belong.</h1>
+          <p className="muted">
+            Booklyverse is your social reading universe — where readers and 
+            authors meet, share, and grow together in a vibrant literary community.
+          </p>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          {/* Button row */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-start',
+              alignItems: 'center',
+              marginTop: '1.5rem',
+              gap: '1rem',
+            }}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+            <Link className="btn-primary btn" href="/discover">
+              Start Discovering
+            </Link>
+            <Link className="btn btn" href="/clubs/new">
+              Create a Club
+            </Link>
+          </div>
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      {/* Key Features */}
+      <section className="grid features" style={{ marginTop: '4rem' }}>
+        <div className="panel">
+          <h2 className="h2">📚 Book Clubs</h2>
+          <p className="muted">
+            Create or join clubs around genres, authors, or themes. 
+            Host discussions, vote on next reads, and chat in real time.
+          </p>
+        </div>
+        <div className="panel">
+          <h2 className="h2">👩‍💻 Author Hubs</h2>
+          <p className="muted">
+            Every author gets a home in Booklyverse. Follow them for Q&amp;A’s, 
+            livestream readings, exclusive previews, and more.
+          </p>
+        </div>
+        <div className="panel">
+          <h2 className="h2">💸 Curated Deals</h2>
+          <p className="muted">
+            Hand-picked discounts and BookBub-style promotions, personalized to 
+            your taste and delivered daily.
+          </p>
+        </div>
+        <div className="panel">
+          <h2 className="h2">🎉 Live Events</h2>
+          <p className="muted">
+            Join book launches, watch-along sessions, and community meetups. 
+            Whether virtual or local, there’s always something happening.
+          </p>
+        </div>
+        <div className="panel">
+          <h2 className="h2">🛍️ Marketplace</h2>
+          <p className="muted">
+            Discover signed editions, merchandise, and limited runs 
+            designed for true book lovers.
+          </p>
+        </div>
+        <div className="panel">
+          <h2 className="h2">📖 Featured Reads</h2>
+          <p className="muted">
+            Each week we spotlight trending and critically acclaimed books, 
+            so your next favorite is never far away.
+          </p>
+        </div>
+        <div className="panel">
+          <h2 className="h2">🔍 Series Tracker</h2>
+          <p className="muted">
+            Follow book series, track upcoming releases, and get alerts 
+            when new installments drop.
+          </p>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="grid cta" style={{ marginTop: '4rem' }}>
+        <div className="panel col-12" style={{ textAlign: 'center' }}>
+          <h2 className="h2">Your reading circle awaits.</h2>
+          <p className="muted">
+            Don’t just read — belong.
+          </p>
+          <Link
+            className="btn-primary btn"
+            href="/signup"
+            style={{ marginTop: '1rem' }}
+          >
+            Join Booklyverse Free
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer
+        style={{
+          marginTop: '4rem',
+          padding: '2rem 0',
+          textAlign: 'center',
+          borderTop: '1px solid var(--border-color, #ddd)',
+        }}
+      >
+        <p className="muted">
+          &copy; {new Date().getFullYear()} Booklyverse. All rights reserved.
+        </p>
+        <p>
+          <Link href="/privacy">Privacy Policy</Link> ·{' '}
+          <Link href="/terms">Terms of Service</Link>
+        </p>
       </footer>
-    </div>
+    </main>
   );
 }
