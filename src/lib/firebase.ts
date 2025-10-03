@@ -1,9 +1,7 @@
-// src/lib/firebase.ts
-import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getApps, getApp, initializeApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
 
-// Build the Firebase config from environment variables
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
@@ -11,31 +9,21 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID, // optional
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID!,
 };
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Only initialize Firebase in the browser (avoid SSR invalid API key)
-if (typeof window !== "undefined") {
-  console.log("✅ Firebase config in browser:", firebaseConfig);
+export const auth: Auth = getAuth(app);
+export const db: Firestore = getFirestore(app);
 
-  app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-}
-
-export { app, auth, db };
-
-// ✅ Helpers so you can safely access auth/db without TS errors
+// ✅ Add these helper wrappers
 export function getAuthOrThrow(): Auth {
-  if (!auth) throw new Error("Firebase Auth not initialized (SSR?)");
+  if (!auth) throw new Error("Firebase Auth is not initialized");
   return auth;
 }
 
 export function getDbOrThrow(): Firestore {
-  if (!db) throw new Error("Firestore not initialized (SSR?)");
+  if (!db) throw new Error("Firestore is not initialized");
   return db;
 }
