@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "bookverse-dccfa"
-  }
+    "default": "booklyverse"
+  },
+  "targets": {},
+  "etags": {}
 }

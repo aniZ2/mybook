@@ -1,5 +1,7 @@
 {
   "firestore": {
+    "database": "(default)",
+    "location": "nam7",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
@@ -7,37 +9,51 @@
     {
       "codebase": "default",
       "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ],
-      "source": "functions",
       "ignore": [
         "node_modules",
         ".git",
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
+      ],
+      "source": "functions"
+    }
+  ],
+  "apphosting": [
+    {
+      "backendId": "my-web-app",
+      "rootDir": ".",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ],
+      "env": {
+        "NEXT_PUBLIC_FIREBASE_API_KEY": "AIzaSyCLCvUFVcpDDrOEOLkL5MXoya1L25454Os",
+        "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "bookverse-dccfa.firebaseapp.com",
+        "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "bookverse-dccfa",
+        "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET": "bookverse-dccfa.firebasestorage.app",
+        "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "337684010998",
+        "NEXT_PUBLIC_FIREBASE_APP_ID": "1:337684010998:web:5a6889b989428512a259d7"
+      }
+    },
+    {
+      "backendId": "booklyverse",
+      "rootDir": "/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
       ]
     }
   ],
-  "apphosting": {
-  "backendId": "my-web-app",
-  "rootDir": ".",
-  "ignore": [
-    "node_modules",
-    ".git",
-    "firebase-debug.log",
-    "firebase-debug.*.log",
-    "functions"
-  ],
-  "env": {
-    "NEXT_PUBLIC_FIREBASE_API_KEY": "AIzaSyCLCvUFVcpDDrOEOLkL5MXoya1L25454Os",
-    "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "bookverse-dccfa.firebaseapp.com",
-    "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "bookverse-dccfa",
-    "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET": "bookverse-dccfa.firebasestorage.app",
-    "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "337684010998",
-    "NEXT_PUBLIC_FIREBASE_APP_ID": "1:337684010998:web:5a6889b989428512a259d7"
-  }
-},
   "storage": {
     "rules": "storage.rules"
   }
