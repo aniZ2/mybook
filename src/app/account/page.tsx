@@ -1,47 +1,95 @@
 'use client';
 
-export const dynamic = "force-dynamic"; 
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
-import { logout } from "@/lib/auth";
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
 export default function AccountPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [tab, setTab] = useState<'account' | 'feeds' | 'apps'>('account');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Redirect to /login if not logged in
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login");
+      router.replace('/login');
     }
-  }, [user, loading, router]);
+  }, [loading, user, router]);
 
-  if (loading) {
-    return <p className="muted">Loading account…</p>;
-  }
-
-  if (!user) {
-    // brief fallback in case redirect is happening
-    return <p className="muted">Redirecting to login…</p>;
-  }
+  if (loading) return <p className="muted">Loading account…</p>;
+  if (!user) return null;
 
   return (
-    <main className="container">
-      <h1 className="h1">Your Account</h1>
-      <div className="panel" style={{ maxWidth: 500 }}>
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>UID:</strong> {user.uid}</p>
-        <p><strong>Display Name:</strong> {user.displayName || "Not set"}</p>
-        <button
-          className="btn"
-          onClick={async () => {
-            await logout();
-            router.push("/login");
-          }}
-        >
-          Logout
-        </button>
+    <main className="container account-container">
+      <div className="panel account-card">
+        <h1 className="h1">Account Settings</h1>
+
+        {/* Tabs */}
+        <nav className="account-tabs">
+          {['account', 'feeds', 'apps'].map((t) => (
+            <button
+              key={t}
+              className={`tab-btn ${tab === t ? 'active' : ''}`}
+              onClick={() => setTab(t as typeof tab)}
+            >
+              {t === 'account' && 'Account & Notifications'}
+              {t === 'feeds' && 'Feeds'}
+              {t === 'apps' && 'Apps'}
+            </button>
+          ))}
+        </nav>
+
+        {/* Tab content */}
+        {tab === 'account' && (
+          <section>
+            <h2 className="h2">Account Settings</h2>
+            <p className="muted">Update your email, password, and notifications.</p>
+            <div className="form-grid">
+              <div>
+                <label className="label">Email</label>
+                <input type="email" className="input" defaultValue={user.email || ''} />
+              </div>
+              <div>
+                <label className="label">Password</label>
+                <input type="password" className="input" placeholder="••••••" />
+              </div>
+              <button className="btn-primary btn">Update Account</button>
+            </div>
+          </section>
+        )}
+
+        {tab === 'feeds' && (
+          <section>
+            <h2 className="h2">Feed Preferences</h2>
+            <p className="muted">Choose which updates appear in your activity feed.</p>
+            <div className="prefs-grid">
+              <label><input type="checkbox" /> Show book reviews</label>
+              <label><input type="checkbox" /> Show new club activity</label>
+              <label><input type="checkbox" /> Show author posts</label>
+            </div>
+          </section>
+        )}
+
+        {tab === 'apps' && (
+          <section>
+            <h2 className="h2">Connected Apps</h2>
+            <p className="muted">Manage apps linked to your account.</p>
+            <div className="prefs-grid">
+              <p className="muted">No third-party apps connected.</p>
+              <button className="btn">Connect App</button>
+            </div>
+          </section>
+        )}
+
+        {/* Danger Zone */}
+        <section className="danger-zone">
+          <h2 className="h2">Danger Zone</h2>
+          {error && <p style={{ color: 'tomato' }}>{error}</p>}
+          <button> 
+            {busy ? 'Deleting…' : 'Delete my account'}
+          </button>
+        </section>
       </div>
     </main>
   );

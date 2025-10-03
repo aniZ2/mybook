@@ -1,6 +1,6 @@
 'use client';
 
-export const dynamic = "force-dynamic"; 
+export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { signInWithEmail, startGoogleRedirect } from "@/lib/auth";
@@ -15,10 +15,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  // Auto-redirect if logged in
-  if (!loading && user) {
-    router.push("/account");
-  }
+  if (!loading && user) router.push("/account");
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -39,29 +36,59 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="container">
-      <h1 className="h1">Login</h1>
-      <form onSubmit={handleLogin} className="panel" style={{ maxWidth: 400 }}>
-        <input
-          className="input"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          className="input"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button className="btn-primary btn" type="submit">Login</button>
-        <button type="button" className="btn" onClick={handleGoogle}>
-          Continue with Google
-        </button>
-        {error && <p className="muted">{error}</p>}
-      </form>
+    <main className="login-container">
+      <div className="login-card">
+        <h1 className="login-title">Welcome Back</h1>
+        <p className="login-subtitle">Sign in to continue your journey 📚</p>
+
+        <form onSubmit={handleLogin}>
+          <label className="label">Email</label>
+          <input
+            className="input"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+          />
+
+          <label className="label">Password</label>
+          <input
+            className="input"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+          />
+
+          <button className="btn-primary btn" type="submit">
+            Sign In
+          </button>
+
+          <div className="divider">
+            <span>or</span>
+          </div>
+
+          <button type="button" className="btn-google" onClick={handleGoogle}>
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="Google"
+              className="google-icon"
+            />
+            Continue with Google
+          </button>
+
+          {error && <p className="error-text">{error}</p>}
+        </form>
+
+        <p className="login-footer">
+          Don’t have an account?{" "}
+          <a href="/signup" className="link">
+            Create one
+          </a>
+        </p>
+      </div>
     </main>
   );
 }
