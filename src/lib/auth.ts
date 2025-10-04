@@ -1,8 +1,7 @@
 // src/lib/auth.ts
 import {
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -14,39 +13,39 @@ import { getAuthOrThrow, getDbOrThrow } from "@/lib/firebase";
 
 const provider = new GoogleAuthProvider();
 
-export async function startGoogleRedirect() {
-  await signInWithRedirect(getAuthOrThrow(), provider);
+// Google Sign-In (works for both signup and login)
+export async function signInWithGoogle() {
+  const auth = getAuthOrThrow();
+  const result = await signInWithPopup(auth, provider);
+  await ensureUserDoc(result.user);
+  return result.user;
 }
 
-export async function completeGoogleRedirect(): Promise<User | null> {
-  const cred = await getRedirectResult(getAuthOrThrow());
-  if (!cred) return null;
-  const u = cred.user;
-  await ensureUserDoc(u);
-  return u;
-}
-
+// Email Signup
 export async function signUpWithEmail(email: string, password: string) {
   const cred = await createUserWithEmailAndPassword(getAuthOrThrow(), email, password);
   await ensureUserDoc(cred.user);
   return cred.user;
 }
 
+// Email Sign-In
 export async function signInWithEmail(email: string, password: string) {
   const cred = await signInWithEmailAndPassword(getAuthOrThrow(), email, password);
   return cred.user;
 }
 
+// Password Reset
 export async function resetPassword(email: string) {
   await sendPasswordResetEmail(getAuthOrThrow(), email);
 }
 
+// Logout
 export async function logout() {
   return signOut(getAuthOrThrow());
 }
 
-// 🔑 Firestore profile helper
-export async function ensureUserDoc(u: User) {
+// Create user document if it doesn't exist
+async function ensureUserDoc(u: User) {
   if (!u) return;
 
   const db = getDbOrThrow();
@@ -64,5 +63,22 @@ export async function ensureUserDoc(u: User) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+  }
+}
+
+// Check if user needs onboarding
+export async function needsOnboarding(uid: string): Promise<boolean> {
+  try {
+    const db = getDbOrThrow();
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+    
+    if (!snap.exists()) return true;
+    
+    const data = snap.data();
+    return !data.profileComplete;
+  } catch (err) {
+    console.error("Error checking onboarding:", err);
+    return true;
   }
 }

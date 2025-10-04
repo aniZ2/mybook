@@ -519,3 +519,70 @@ body {
 
 .onboard-btn.author { border-left: 4px solid var(--highlight); }
 .onboard-btn.reader { border-left: 4px solid var(--accent); }
+
+/* Discover Page Enhancements */
+.search-hero {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.book-card {
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+
+.book-card:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(255,255,255,0.05));
+  box-shadow: 0 12px 40px rgba(56, 189, 248, 0.2);
+}
+
+.feature-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+/* === Discover Page Search Bar === */
+.search-bar {
+  display: flex;
+  flex-direction: column; /* 👈 stack items vertically */
+  gap: 0.8rem;
+  margin: 2rem auto 0;
+  width: 100%;
+  max-width: 600px; /* keep it nicely wide */
+}
+
+.search-bar .input {
+  width: 100%;
+  font-size: 1rem;
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+}
+
+.search-bar .btn-primary {
+  width: 100%; /* full width button under input */
+  padding: 1rem;
+  font-size: 1rem;
+  border-radius: 12px;
+}
+/* Form Layout Override */
+.form-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}

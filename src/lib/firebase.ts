@@ -1,6 +1,8 @@
 import { getApps, getApp, initializeApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
+import { getFunctions, Functions } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -14,10 +16,13 @@ const firebaseConfig = {
 
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
+// Core services
 export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
+export const storage: FirebaseStorage = getStorage(app);
+export const functions: Functions = getFunctions(app, "us-central1"); // ✅ add this line
 
-// ✅ Add these helper wrappers
+// ✅ Strongly typed helper wrappers
 export function getAuthOrThrow(): Auth {
   if (!auth) throw new Error("Firebase Auth is not initialized");
   return auth;
@@ -26,4 +31,14 @@ export function getAuthOrThrow(): Auth {
 export function getDbOrThrow(): Firestore {
   if (!db) throw new Error("Firestore is not initialized");
   return db;
+}
+
+export function getStorageOrThrow(): FirebaseStorage {
+  if (!storage) throw new Error("Firebase Storage is not initialized");
+  return storage;
+}
+
+export function getFunctionsOrThrow(): Functions {
+  if (!functions) throw new Error("Firebase Functions is not initialized");
+  return functions;
 }

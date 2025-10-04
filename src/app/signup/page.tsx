@@ -1,9 +1,8 @@
+// src/app/signup/page.tsx
 'use client';
 
-export const dynamic = "force-dynamic";
-
-import { useState } from "react";
-import { signUpWithEmail, startGoogleRedirect } from "@/lib/auth";
+import { useState, useEffect } from "react";
+import { signUpWithEmail, signInWithGoogle, needsOnboarding } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { formatError } from "@/lib/errors";
@@ -12,90 +11,109 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  // Auto-redirect if logged in
-  if (!loading && user) {
-    router.push("/account");
-  }
+  // Redirect if already logged in
+  useEffect(() => {
+    if (loading || !user) return;
 
-  async function handleSignup(e: React.FormEvent) {
+    (async () => {
+      const needs = await needsOnboarding(user.uid);
+      router.push(needs ? "/onboarding" : "/account");
+    })();
+  }, [user, loading, router]);
+
+  async function handleEmailSignup(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
+    setIsProcessing(true);
+    
     try {
       await signUpWithEmail(email, password);
-      router.push("/account");
-    } catch (err: unknown) {
+      router.push("/onboarding");
+    } catch (err) {
       setError(formatError(err));
+      setIsProcessing(false);
     }
   }
 
-  async function handleGoogle() {
+  async function handleGoogleSignup() {
+    setError(null);
+    setIsProcessing(true);
+    
     try {
-      await startGoogleRedirect();
-    } catch (err: unknown) {
+      const u = await signInWithGoogle();
+      const needs = await needsOnboarding(u.uid);
+      router.push(needs ? "/onboarding" : "/account");
+    } catch (err) {
       setError(formatError(err));
+      setIsProcessing(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <main className="login-container">
+        <div className="login-card">
+          <p className="muted">Loading...</p>
+        </div>
+      </main>
+    );
   }
 
   return (
-    <main className="login-container fade-in">
+    <main className="login-container">
       <div className="book-glow"></div>
-      <div className="signup-glow"></div>
+      <div className="login-card">
+        <h1 className="login-title">Create Account</h1>
+        <p className="login-subtitle">Join Booklyverse as a reader or author.</p>
 
-      <div className="signup-card">
-        <h1 className="login-title signup-title">
-          Join <span>Booklyverse</span>
-        </h1>
-        <p className="login-subtitle">Your next story begins here.</p>
-
-        <form onSubmit={handleSignup}>
-          <label className="label">Email</label>
+        <form onSubmit={handleEmailSignup}>
           <input
             className="input"
             type="email"
-            placeholder="you@example.com"
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={isProcessing}
           />
-
-          <label className="label">Password</label>
           <input
             className="input"
             type="password"
-            placeholder="••••••••"
+            placeholder="Password (min 6 characters)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+            disabled={isProcessing}
           />
 
-          <button className="btn btn-primary" type="submit">
-            Create Account
+          <button className="btn-primary btn" type="submit" disabled={isProcessing}>
+            {isProcessing ? "Creating account..." : "Sign Up"}
           </button>
-
-          <div className="divider">or</div>
-
-          <button type="button" className="btn btn-google" onClick={handleGoogle}>
-            <img
-              className="google-icon"
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              alt="Google"
-            />
-            Continue with Google
-          </button>
-
-          {error && <p className="error-text">{error}</p>}
         </form>
 
-        <p className="login-footer">
+        <div className="divider">or</div>
+
+        <button 
+          type="button" 
+          className="btn btn-google" 
+          onClick={handleGoogleSignup}
+          disabled={isProcessing}
+        >
+          Continue with Google
+        </button>
+
+        {error && <p className="error-text">{error}</p>}
+
+        <p className="muted" style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
           Already have an account?{" "}
-          <a
-            onClick={() => {
-              document.body.classList.add("page-flip");
-              setTimeout(() => router.push("/login"), 400);
-            }}
-            className="link"
-          >
-            Log in
+          <a href="/login" style={{ color: "var(--accent)", textDecoration: "underline" }}>
+            Sign in
           </a>
         </p>
       </div>
