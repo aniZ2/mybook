@@ -42,7 +42,7 @@ export default function ScanISBN(){
         await videoRef.current.play();
       }
       // Decode continuously from the camera
-      reader.decodeFromVideoDevice(undefined, videoRef.current!, (res, err) => {
+      reader.decodeFromVideoDevice(null, videoRef.current!, (res, err) => {
         if (res) {
           const raw = res.getText();
           const digits = raw.replace(/[^0-9Xx]/g, '');
