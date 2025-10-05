@@ -1,0 +1,180 @@
+/* ─────────────── Discover Page Layout ─────────────── */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem 5rem;
+}
+
+/* ─────────────── Search Bar ─────────────── */
+.searchBar {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.searchBar input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+}
+
+.searchBar button {
+  background-color: #1f2937;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.searchBar button:hover {
+  background-color: #111827;
+}
+
+/* ─────────────── Featured Books Section ─────────────── */
+.genreBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.genreBar button {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.genreBar button:hover {
+  background: #e5e7eb;
+}
+
+.activeGenre {
+  background-color: #1f2937;
+  color: #fff;
+  border-color: #1f2937;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.card img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.75rem 1rem 0.25rem;
+}
+
+.card p {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0 1rem 1rem;
+}
+
+/* ─────────────── Panel (shared) ─────────────── */
+.panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.panel h1,
+.panel h2 {
+  margin-bottom: 0.5rem;
+  font-family: 'Merriweather', serif;
+}
+
+/* ─────────────── Transitions / Animations ─────────────── */
+.fadeIn {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─────────────── CTA Section ─────────────── */
+.btn {
+  display: inline-block;
+  background-color: #1f2937;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.btn:hover {
+  background-color: #111827;
+}
+
+.btnPrimary {
+  background-color: #2563eb;
+  color: #fff;
+}
+
+.btnPrimary:hover {
+  background-color: #1e40af;
+}
+
+/* ─────────────── Responsive ─────────────── */
+@media (max-width: 640px) {
+  .container {
+    padding: 1.5rem 1rem 4rem;
+  }
+
+  .searchBar {
+    flex-direction: column;
+  }
+
+  .searchBar button {
+    width: 100%;
+  }
+}
