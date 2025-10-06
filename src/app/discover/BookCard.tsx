@@ -27,7 +27,7 @@ export default function BookCard({ book }: BookCardProps) {
       )}
 
       {/* Title */}
-      <Link href={`/book/${book.slug}`} className={styles.titleLink}>
+      <Link href={`/books/${book.slug}`} className={styles.titleLink}>
         <h3 className={styles.title}>{book.title}</h3>
       </Link>
 
