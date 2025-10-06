@@ -28,6 +28,10 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'm.media-amazon.com', // ✅ Amazon images
+      },
+      {
+        protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
         pathname: '/**',
       },

@@ -23,7 +23,8 @@ import BookCard from './BookCard';
 import AuthorCard from './AuthorCard';
 import ReaderPostCard from './ReaderPostCard';
 import styles from './DiscoverPage.module.css';
-import { BookDoc, AuthorDoc, PostDoc } from '@/types/firestore';
+// NOTE: Assuming you have corresponding type definitions in '@/types/firestore'
+import { BookDoc, AuthorDoc, PostDoc } from '@/types/firestore'; 
 
 interface DiscoverPageProps {
   user?: { uid: string };
@@ -42,11 +43,12 @@ interface BookItem {
   buyLink?: string;
   bnLink?: string;
   googleLink?: string;
-  source: 'google' | 'isbndb' | 'amazon';
   genres?: string[];
+  source: 'google' | 'isbndb' | 'amazon';
 }
 
 function stripHtml(html: string): string {
+  // This helper is for stripping HTML tags from external API descriptions
   return html.replace(/<[^>]+>/g, '').trim();
 }
 
@@ -62,53 +64,111 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
 
-  /* ─────────────── Load Discovery Feeds ─────────────── */
+/* ─────────────── Load Discovery Feeds (PARALLELIZED) ─────────────── */
   useEffect(() => {
     (async () => {
       try {
-        const trendingSnap = await getDocs(
-          query(collection(db, 'books'), orderBy('likesCount', 'desc'), limit(10))
-        );
-        setTrending(trendingSnap.docs.map((d) => d.data() as BookDoc));
+        // --- 1. Define All Promises ---
+        
+        // A. Trending Books (API Call to your Algolia-powered route)
+        const trendingPromise = fetch('/api/discover/trending')
+          .then(res => res.ok ? res.json() : { books: [] })
+          .then(data => data.books || [])
+          .catch(err => { console.error("Trending API fetch error:", err); return []; });
 
+        // B. Emerging Authors (Firestore Query)
+        const authorsQuery = query(
+          collection(db, 'authors'), 
+          orderBy('followersCount', 'desc'), 
+          limit(8)
+        );
+        const authorsPromise = getDocs(authorsQuery)
+          .then(snap => snap.docs.map(d => d.data() as AuthorDoc));
+
+        // C. Reader Posts (Firestore Query)
+        const postsQuery = query(
+          collection(db, 'posts'), 
+          orderBy('createdAt', 'desc'), 
+          limit(10)
+        );
+        const postsPromise = getDocs(postsQuery)
+          .then(snap => snap.docs.map(d => d.data() as PostDoc));
+
+        // D. Recommended For You (Conditional Firestore/Preference Query)
+        let forYouPromise: Promise<BookDoc[]> = Promise.resolve([]);
         if (user?.uid) {
-          const prefRef = doc(db, 'users', user.uid, 'preferences', 'bookPrefs');
-          const prefSnap = await getDoc(prefRef);
-          const prefs = prefSnap.data();
-          if (prefs?.moods?.length) {
-            const qy = query(
-              collection(db, 'books'),
-              where('moods', 'array-contains-any', prefs.moods),
-              limit(10)
-            );
-            const snap = await getDocs(qy);
-            setForYou(snap.docs.map((d) => d.data() as BookDoc));
-          }
+          forYouPromise = getDoc(doc(db, 'users', user.uid, 'preferences', 'bookPrefs'))
+            .then(prefSnap => {
+              const prefs = prefSnap.data();
+              if (prefs?.genres?.length) { 
+                // Personalized query based on user genres
+                const qy = query(
+                  collection(db, 'books'),
+                  where('genres', 'array-contains-any', prefs.genres), 
+                  limit(10)
+                );
+                return getDocs(qy).then(snap => snap.docs.map((d) => d.data() as BookDoc));
+              } else {
+                // Fallback to show newest if no specific prefs exist
+                const qyAll = query(collection(db, 'books'), orderBy('createdAt', 'desc'), limit(10));
+                return getDocs(qyAll).then(snap => snap.docs.map((d) => d.data() as BookDoc));
+              }
+            })
+            .catch(err => { console.warn("For You fetch failed, returning empty.", err); return []; });
         }
 
-        const authorsSnap = await getDocs(
-          query(collection(db, 'authors'), orderBy('followersCount', 'desc'), limit(8))
-        );
-        setAuthors(authorsSnap.docs.map((d) => d.data() as AuthorDoc));
 
-        const postsSnap = await getDocs(
-          query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(10))
-        );
-        setPosts(postsSnap.docs.map((d) => d.data() as PostDoc));
+        // --- 2. Run All Promises Simultaneously (This fixes the slow loading) ---
+        const [
+          trendingData, 
+          authorsData, 
+          postsData, 
+          forYouData
+        ] = await Promise.all([
+          trendingPromise, 
+          authorsPromise, 
+          postsPromise, 
+          forYouPromise
+        ]);
+        
+        // --- 3. Set State Only Once ---
+        setTrending(trendingData);
+        setAuthors(authorsData);
+        setPosts(postsData);
+        setForYou(forYouData);
+
       } catch (err) {
         console.error('Error loading discovery feeds:', err);
       }
     })();
   }, [user?.uid]);
 
-  /* ─────────────── External Search ─────────────── */
+  /* ─────────────── Search (Firestore + External) ─────────────── */
   async function runSearch(e?: React.FormEvent) {
     e?.preventDefault();
     if (!q.trim()) return;
     setBusy(true);
     setError(null);
     setItems([]);
+
     try {
+      // 🔎 1. Try Firestore search first
+      const fsQuery = query(
+        collection(db, 'books'),
+        where('title', '>=', q),
+        where('title', '<=', q + '\uf8ff'),
+        limit(10)
+      );
+      const fsSnap = await getDocs(fsQuery);
+      const fsResults = fsSnap.docs.map((d) => d.data() as BookItem);
+
+      if (fsResults.length > 0) {
+        setItems(fsResults);
+        setBusy(false);
+        return;
+      }
+
+      // 🌐 2. Fallback to external APIs
       const res = await fetch('/api/books/search?q=' + encodeURIComponent(q));
       if (!res.ok) throw new Error(`Search failed: ${res.status}`);
       const data = await res.json();
@@ -122,7 +182,8 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
     }
   }
 
-  /* ─────────────── Add Book If Missing ─────────────── */
+  /* ─────────────── Add Book If Missing (Caches metadata) ─────────────── */
+  // NOTE: This logic ensures external book metadata is saved to your Firestore 'books' collection
   async function addBookIfMissing(b: BookItem): Promise<string> {
     const slug = slugify(b.title, b.authors?.[0] || b.asin || b.isbn13);
     const ref = doc(db, 'books', slug);
@@ -136,9 +197,8 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
 
     try {
       if (b.source === 'google') {
-        const g = await fetch(
-          `https://www.googleapis.com/books/v1/volumes/${b.id}`
-        ).then((r) => r.json());
+        // Fetch full Google Books details for description, etc.
+        const g = await fetch(`https://www.googleapis.com/books/v1/volumes/${b.id}`).then((r) => r.json());
         const v = g.volumeInfo || {};
         description = v.description ? stripHtml(v.description) : null;
         previewLink = v.previewLink ?? b.googleLink ?? null;
@@ -192,6 +252,7 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
       router.push(`/books/${slug}`);
     } catch (err) {
       console.error('Error saving book:', err);
+      // NOTE: Using a custom modal/message box is preferred over alert()
       alert('Failed to save book.');
     } finally {
       setSaving(null);
@@ -207,6 +268,7 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
         animate={{ opacity: 1, y: 0 }}
       >
         <h1 className={styles.pageTitle}>Discover Books</h1>
+        
 
         <form onSubmit={runSearch} className={styles.searchBar}>
           <input
@@ -214,8 +276,26 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by title, author, ISBN, or ASIN..."
           />
+
+          {/* 📷 Scan ISBN */}
+          <a
+            href="/scan"
+            style={{
+              background: '#1e293b',
+              color: '#fff',
+              padding: '0.5rem 0.8rem',
+              borderRadius: '6px',
+              textDecoration: 'none',
+              marginLeft: '0.5rem',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            📷 Scan ISBN
+          </a>
+
           <button disabled={busy}>
-            {busy ? 'Searching...' : 'Search'}
+            {busy ? (saving ? 'Saving...' : 'Searching...') : 'Search'}
           </button>
         </form>
 
@@ -255,6 +335,7 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
         </AnimatePresence>
       </motion.section>
 
+      {/* Now all sections load as fast as the slowest simultaneous query */}
       <DiscoverSection title="Trending Books">
         {trending.map((b) => (
           <BookCard key={b.slug || b.id} book={b} />

@@ -1,10 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  addDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  limit,
+} from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
 import { slugify } from '@/lib/slug';
+import { onAuthStateChanged } from 'firebase/auth';
 
 /* ─────────────── Types ─────────────── */
 type BookItem = {
@@ -31,42 +43,80 @@ function stripHtml(html: string) {
 function isASIN(q: string) {
   return /^[A-Z0-9]{10}$/i.test(q.trim());
 }
+function getAnonId() {
+  let id = localStorage.getItem('anon_uid');
+  if (!id) {
+    id = 'anon_' + Math.random().toString(36).substring(2, 10);
+    localStorage.setItem('anon_uid', id);
+  }
+  return id;
+}
 
 /* ─────────────── Component ─────────────── */
 export default function BookSearch() {
+  const [user, setUser] = useState<{ uid: string | null } | null>(null);
   const [q, setQ] = useState('');
   const [items, setItems] = useState<BookItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  /* 🔐 Track signed-in user */
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) =>
+      setUser(u ? { uid: u.uid } : { uid: getAnonId() })
+    );
+    return unsub;
+  }, []);
+
   /* 🔍 Search Books / ASIN */
   const search = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!q.trim()) return;
+    const queryText = q.trim().toLowerCase();
     setBusy(true);
     setError(null);
 
     try {
-      // ✅ ASIN Shortcut
-      if (isASIN(q)) {
-        const asin = q.trim().toUpperCase();
-        const item: BookItem = {
-          id: asin,
-          title: `Amazon Book (${asin})`,
-          authors: [],
-          asin,
-          cover: `https://images-na.ssl-images-amazon.com/images/P/${asin}.01._SX500_SY500_.jpg`,
-          buyLink: `https://www.amazon.com/dp/${asin}`,
-          source: 'amazon',
-        };
-        setItems([item]);
+      /* 🧭 Log search event only if not logged recently */
+      const uid = user?.uid || getAnonId();
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const searchQuery = query(
+        collection(db, 'search_events'),
+        where('uid', '==', uid),
+        where('query', '==', queryText),
+        where('timestamp', '>=', oneHourAgo),
+        limit(1)
+      );
+      const existing = await getDocs(searchQuery);
+      if (existing.empty) {
+        await addDoc(collection(db, 'search_events'), {
+          uid,
+          query: queryText,
+          timestamp: serverTimestamp(),
+        });
+      }
+
+      /* 🧩 Handle ASIN lookup */
+      if (isASIN(queryText)) {
+        const asin = queryText.toUpperCase();
+        setItems([
+          {
+            id: asin,
+            title: `Amazon Book (${asin})`,
+            authors: [],
+            asin,
+            cover: `https://images-na.ssl-images-amazon.com/images/P/${asin}.01._SX500_SY500_.jpg`,
+            buyLink: `https://www.amazon.com/dp/${asin}`,
+            source: 'amazon',
+          },
+        ]);
         setBusy(false);
         return;
       }
 
-      // ✅ Search our unified API
-      const res = await fetch('/api/books/search?q=' + encodeURIComponent(q));
+      /* 🌐 Search your unified API */
+      const res = await fetch('/api/books/search?q=' + encodeURIComponent(queryText));
       if (!res.ok) throw new Error(`Search failed: ${res.status}`);
       const data = await res.json();
       setItems(data.results || []);
@@ -78,48 +128,25 @@ export default function BookSearch() {
     }
   };
 
-  /* ➕ Add to Firestore if missing */
+  /* ➕ Add Book If Missing */
   const addBookIfMissing = async (b: BookItem) => {
     const slug = slugify(b.title, b.authors?.[0] || b.asin || b.isbn13);
     const ref = doc(db, 'books', slug);
     const snap = await getDoc(ref);
     if (snap.exists()) return slug;
 
-    let description: string | null =
-      (b.description && b.description.trim()) || null;
+    let description: string | null = b.description || null;
     let previewLink: string | null = b.googleLink || null;
     let buyLink: string | null = b.buyLink || null;
-    let averageRating: number | null = null;
-    let ratingsCount: number | null = null;
 
     try {
-      // Google fallback if description missing
       if (b.source === 'google' && !description) {
-        const g = await fetch(
-          `https://www.googleapis.com/books/v1/volumes/${b.id}`
-        ).then((r) => r.json());
+        const g = await fetch(`https://www.googleapis.com/books/v1/volumes/${b.id}`).then(r => r.json());
         const v = g.volumeInfo || {};
-        description = v.description
-          ? stripHtml(v.description)
-          : b.publisher || null;
+        description = v.description ? stripHtml(v.description) : b.publisher || null;
         previewLink = previewLink ?? v.previewLink ?? null;
-        buyLink =
-          buyLink ??
-          g.saleInfo?.buyLink ??
-          `https://www.amazon.com/s?k=${encodeURIComponent(
-            b.isbn13 || b.title
-          )}`;
-        averageRating = v.averageRating ?? null;
-        ratingsCount = v.ratingsCount ?? null;
-      }
-
-      // ISBNdb fallback
-      if (b.source === 'isbndb' && !description) {
-        description = b.publisher || `Book entry for ${b.title}`;
-      }
-
-      // Amazon fallback
-      if (b.source === 'amazon' && b.asin) {
+        buyLink = buyLink ?? g.saleInfo?.buyLink ?? null;
+      } else if (b.source === 'amazon' && b.asin) {
         description = description || `Amazon listing for ASIN ${b.asin}`;
         buyLink = buyLink || `https://www.amazon.com/dp/${b.asin}`;
       }
@@ -138,8 +165,6 @@ export default function BookSearch() {
         description,
         previewLink,
         buyLink,
-        averageRating,
-        ratingsCount,
         publisher: b.publisher || null,
         publishedAt: b.publishedDate || null,
         genres: [],
@@ -152,7 +177,6 @@ export default function BookSearch() {
           asin: b.asin || null,
           sourceId: b.id || null,
         },
-        savedAt: serverTimestamp(),
         createdAt: serverTimestamp(),
       },
       { merge: true }
@@ -174,112 +198,31 @@ export default function BookSearch() {
 
   /* ─────────────── UI ─────────────── */
   return (
-    <main
-      style={{
-        padding: '2rem',
-        maxWidth: 800,
-        margin: '0 auto',
-        fontFamily: 'system-ui, sans-serif',
-        color: '#f5f5f5',
-      }}
-    >
-      <h1
-        style={{
-          fontSize: '2rem',
-          fontWeight: 700,
-          color: '#d4af37',
-          marginBottom: '1rem',
-        }}
-      >
-        Search Books or ASINs
-      </h1>
+    <main style={{ padding: '2rem', maxWidth: 800, margin: '0 auto' }}>
+      <h1 style={{ color: '#d4af37', marginBottom: '1rem' }}>Search Books or ASINs</h1>
 
-      <form
-        onSubmit={search}
-        style={{ display: 'flex', gap: '.6rem', marginBottom: '1rem' }}
-      >
+      <form onSubmit={search} style={{ display: 'flex', gap: '.6rem', marginBottom: '1rem' }}>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Enter title, ISBN, or ASIN..."
-          style={{
-            flex: 1,
-            padding: '.65rem .9rem',
-            borderRadius: 6,
-            border: '1px solid #555',
-            background: '#111',
-            color: '#eee',
-          }}
+          style={{ flex: 1, padding: '.65rem .9rem', borderRadius: 6 }}
         />
-        <button
-          disabled={busy}
-          style={{
-            background: '#d4af37',
-            color: '#111',
-            border: 'none',
-            padding: '.65rem 1.2rem',
-            borderRadius: 6,
-            fontWeight: 600,
-            cursor: busy ? 'wait' : 'pointer',
-            transition: 'background 0.2s ease',
-          }}
-        >
+        <button disabled={busy} style={{ background: '#d4af37', color: '#111', borderRadius: 6 }}>
           {busy ? 'Searching…' : 'Search'}
         </button>
       </form>
 
-      {error && (
-        <p style={{ color: 'tomato', marginBottom: '1rem' }}>{error}</p>
-      )}
+      {error && <p style={{ color: 'tomato' }}>{error}</p>}
 
       <div style={{ display: 'grid', gap: '1rem' }}>
         {items.map((b) => (
-          <div
-            key={b.id + (b.isbn13 || b.asin || '')}
-            onClick={() => viewDetails(b)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '1rem',
-              background: '#1e1e1e',
-              border: '1px solid #333',
-              borderRadius: 8,
-              cursor: 'pointer',
-              transition: 'transform 0.2s ease, border-color 0.2s ease',
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.borderColor = '#d4af37')
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.borderColor = '#333')
-            }
-          >
-            {b.cover && (
-              <img
-                src={b.cover}
-                alt={b.title}
-                style={{
-                  width: 70,
-                  height: 100,
-                  objectFit: 'cover',
-                  borderRadius: 6,
-                }}
-              />
-            )}
+          <div key={b.id} onClick={() => viewDetails(b)} style={{ cursor: 'pointer' }}>
+            {b.cover && <img src={b.cover} alt={b.title} width={70} height={100} />}
             <div>
-              <strong style={{ fontSize: '1rem', color: '#f5f5f5' }}>
-                {b.title}
-              </strong>
-              <div style={{ color: '#9ca3af', fontSize: '.9rem' }}>
-                {(b.authors || []).join(', ') || 'Unknown author'}
-              </div>
-              <div style={{ color: '#777', fontSize: '.8rem' }}>
-                {b.asin
-                  ? `ASIN: ${b.asin}`
-                  : `ISBN: ${b.isbn13 || b.isbn10 || '—'}`}{' '}
-                • {b.source.toUpperCase()}
-              </div>
+              <strong>{b.title}</strong>
+              <p>{b.authors.join(', ') || 'Unknown author'}</p>
+              <small>{b.source.toUpperCase()}</small>
             </div>
           </div>
         ))}
