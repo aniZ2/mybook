@@ -21,6 +21,7 @@ import Link from 'next/link';
 import AddReview from './AddReview';
 import ReviewsList from './ReviewsList';
 import type { BookDoc, ReviewDoc, ClubDoc } from '@/types/firestore';
+import { slugify } from '@/utils/slugify';
 
 export default function BookDetailsClient({ slug }: { slug: string }) {
   const [user] = useAuthState(auth);
@@ -34,6 +35,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
   const [isInReadingList, setIsInReadingList] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
+  /* ─────────── Load Book Data ─────────── */
   useEffect(() => {
     (async () => {
       try {
@@ -45,9 +47,13 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
         }
 
         const bookData = snap.data() as BookDoc;
+        if (!bookData.id) bookData.id = slug;
+        if (!bookData.authorId && bookData.authorName) {
+          bookData.authorId = slugify(bookData.authorName);
+        }
         setBook(bookData);
 
-        // Reviews → average rating
+        /* ─── Reviews ─── */
         const reviewsRef = collection(db, 'books', slug, 'reviews');
         const reviewsQuery = query(reviewsRef, orderBy('createdAt', 'desc'));
         const reviewsSnap = await getDocs(reviewsQuery);
@@ -55,13 +61,13 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
 
         if (reviews.length > 0) {
           const avg =
-            reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+            reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
           setAverageRating(avg);
           setTotalReviews(reviews.length);
         }
 
-        // Related books by same author
-        if (bookData.authorId) {
+        /* ─── Related Books ─── */
+        if (bookData?.authorId) {
           const relatedQuery = query(
             collection(db, 'books'),
             where('authorId', '==', bookData.authorId),
@@ -74,7 +80,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
           setRelatedBooks(related.slice(0, 4));
         }
 
-        // Clubs containing this book
+        /* ─── Clubs Featuring This Book ─── */
         const clubsQuery = query(collection(db, 'clubs'), limit(10));
         const clubsSnap = await getDocs(clubsQuery);
         const clubsWithThisBook: ClubDoc[] = [];
@@ -87,13 +93,11 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
             limit(1)
           );
           const bookSnap = await getDocs(bookQuery);
-          if (!bookSnap.empty) {
-            clubsWithThisBook.push(clubDoc.data() as ClubDoc);
-          }
+          if (!bookSnap.empty) clubsWithThisBook.push(clubDoc.data() as ClubDoc);
         }
         setClubsWithBook(clubsWithThisBook.slice(0, 3));
 
-        // Reading list check
+        /* ─── Reading List Check ─── */
         if (user) {
           const readingListRef = doc(db, 'users', user.uid, 'readingList', slug);
           const readingListSnap = await getDoc(readingListRef);
@@ -108,7 +112,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
     })();
   }, [slug, user]);
 
-  // Toggle reading list
+  /* ─────────── Toggle Reading List ─────────── */
   const handleAddToReadingList = async () => {
     if (!user || !book) return;
     try {
@@ -131,7 +135,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
     }
   };
 
-  // Share buttons
+  /* ─────────── Share Buttons ─────────── */
   const handleShare = () => {
     if (navigator.share && book) {
       navigator.share({
@@ -149,46 +153,52 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
     setShowShareModal(false);
   };
 
-  // Loading state
-  if (loading) {
+  /* ─────────── Dynamic Buy Links ─────────── */
+  const amazonUrl =
+    book?.asin
+      ? `https://www.amazon.com/dp/${book.asin}`
+      : book?.meta?.isbn13 || book?.meta?.isbn10
+      ? `https://www.amazon.com/s?k=${encodeURIComponent(
+          book.meta?.isbn13 || book.meta?.isbn10!
+        )}`
+      : book?.buyLink || null;
+
+  const bnUrl =
+    book?.meta?.isbn13 || book?.meta?.isbn10
+      ? `https://www.barnesandnoble.com/s/${encodeURIComponent(
+          book.meta?.isbn13 || book.meta?.isbn10!
+        )}`
+      : book?.bnLink || null;
+
+  const googleUrl =
+    book?.googleLink ||
+    (book?.title
+      ? `https://books.google.com?q=${encodeURIComponent(book.title)}`
+      : null);
+
+  /* ─────────── UI ─────────── */
+  if (loading)
     return (
-      <main className="container py-8 max-w-5xl mx-auto">
-        <div className="panel p-6 animate-pulse">
-          <div className="flex gap-6">
-            <div className="w-40 h-60 bg-gray-200 rounded-lg" />
-            <div className="flex-1 space-y-4">
-              <div className="h-8 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
-              <div className="h-32 bg-gray-200 rounded" />
-            </div>
-          </div>
-        </div>
+      <main className="container py-8 max-w-5xl mx-auto text-center text-gray-400">
+        <p>Loading book details...</p>
       </main>
     );
-  }
 
-  if (notFound || !book) {
+  if (notFound || !book)
     return (
-      <main className="container py-8 max-w-3xl mx-auto">
-        <div className="panel text-center py-12">
-          <h1 className="h1">Book Not Found</h1>
-          <p className="muted mt-2">We couldn’t locate this title.</p>
-          <Link href="/books" className="mt-4 inline-block text-blue-600 hover:underline">
-            ← Back to Books
-          </Link>
-        </div>
+      <main className="container py-8 max-w-3xl mx-auto text-center">
+        <h1 className="text-2xl font-semibold mb-2">Book Not Found</h1>
+        <p className="text-gray-400 mb-4">
+          We couldn’t locate this title. Try searching again.
+        </p>
+        <Link href="/discover" className="text-blue-500 hover:underline">
+          ← Back to Discover
+        </Link>
       </main>
     );
-  }
-
-  // Affiliate links
-  const isbn = book.meta?.isbn10 || book.meta?.isbn13;
-  const amazonLink = isbn ? `https://www.amazon.com/s?k=${isbn}&tag=booklyverse-20` : null;
-  const googleBooksLink = isbn ? `https://books.google.com/books?vid=ISBN${isbn}` : null;
 
   return (
     <main className="container py-8 max-w-5xl mx-auto">
-      {/* Book details */}
       <section className="panel p-6">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Cover */}
@@ -199,114 +209,104 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
               width={160}
               height={240}
               className="rounded-lg object-contain shadow-md bg-gray-100"
-              priority
             />
           ) : (
             <div className="w-40 h-60 bg-gray-300 rounded flex items-center justify-center text-xs font-medium">
-              {book.title}
+              No Cover
             </div>
           )}
 
           {/* Info */}
           <div className="flex-1">
-            <h1 className="h1">{book.title}</h1>
-            <div className="mt-2">
-              {book.authorId ? (
-                <Link href={`/authors/${book.authorId}`} className="text-lg text-blue-600 hover:underline">
-                  {book.authors?.length ? book.authors.join(', ') : book.authorName}
-                </Link>
-              ) : (
-                <p className="text-lg muted">{book.authors?.length ? book.authors.join(', ') : book.authorName}</p>
-              )}
-            </div>
+            <h1 className="text-2xl font-bold">{book.title}</h1>
+            <p className="text-gray-500 mt-1">
+              by {book.authors?.join(', ') || book.authorName}
+            </p>
 
-            {/* Rating */}
+            {/* Ratings */}
             {averageRating !== null && (
-              <div className="flex items-center gap-2 mt-3">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <svg
-                      key={i}
-                      className={`w-5 h-5 ${i < Math.round(averageRating) ? 'text-yellow-400' : 'text-gray-300'}`}
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292..." />
-                    </svg>
-                  ))}
-                </div>
-                <span className="text-sm muted">
-                  {averageRating.toFixed(1)} ({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})
-                </span>
+              <div className="mt-3 text-sm text-yellow-400">
+                ⭐ {averageRating.toFixed(1)} / 5 ({totalReviews} reviews)
               </div>
             )}
 
             {/* Metadata */}
-            <div className="mt-4 text-sm muted">
+            <div className="mt-3 text-sm text-gray-400 space-y-1">
+              {book.publisher && <p>Publisher: {book.publisher}</p>}
+              {book.publishedDate && <p>Published: {book.publishedDate}</p>}
               {book.meta?.isbn13 && <p>ISBN-13: {book.meta.isbn13}</p>}
               {book.meta?.isbn10 && <p>ISBN-10: {book.meta.isbn10}</p>}
-              {book.publishedAt && <p>Published: {new Date(book.publishedAt.toString()).toLocaleDateString()}</p>}
+              {book.asin && <p>ASIN: {book.asin}</p>}
             </div>
 
-            {/* Tags */}
-            {book.tags?.length ? (
-              <div className="flex flex-wrap gap-2 mt-4">
-                {book.tags.map((tag) => (
-                  <span key={tag} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-
-            {/* Description */}
-            {book.description && (
-              <div className="mt-4">
-                <h3 className="font-semibold text-lg mb-2">About this book</h3>
-                <p className="leading-relaxed whitespace-pre-line text-gray-700">{book.description}</p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex flex-wrap gap-3 mt-6">
-              {googleBooksLink && (
-                <a href={googleBooksLink} target="_blank" rel="noopener noreferrer" className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50">
-                  Preview
+            {/* Buy Links */}
+            <div className="mt-5 flex flex-wrap gap-3">
+              {amazonUrl && (
+                <a
+                  href={amazonUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 transition"
+                >
+                  🛒 Buy on Amazon
                 </a>
               )}
-              {amazonLink && (
-                <a href={amazonLink} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  Buy on Amazon
+              {bnUrl && (
+                <a
+                  href={bnUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+                >
+                  📗 Barnes & Noble
                 </a>
               )}
+              {googleUrl && (
+                <a
+                  href={googleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                >
+                  📘 Google Books
+                </a>
+              )}
+            </div>
+
+            {/* Reading List + Share */}
+            <div className="flex gap-3 mt-5">
               {user && (
                 <button
                   onClick={handleAddToReadingList}
-                  className={`px-4 py-2 rounded-lg ${isInReadingList ? 'bg-green-100 text-green-700' : 'border border-gray-300'}`}
+                  className={`px-4 py-2 rounded-lg border ${
+                    isInReadingList
+                      ? 'bg-green-100 text-green-700 border-green-300'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
                 >
                   {isInReadingList ? '✓ In Reading List' : '+ Add to Reading List'}
                 </button>
               )}
-              <button onClick={handleShare} className="px-4 py-2 border border-gray-300 rounded-lg">
+              <button
+                onClick={handleShare}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
                 Share
               </button>
             </div>
+
+            {/* Description */}
+            {book.description && (
+              <div className="mt-6">
+                <h3 className="font-semibold text-lg mb-2">About this Book</h3>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                  {book.description}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>
-
-      {/* Clubs, Related Books, Reviews (unchanged) */}
-      {/* ... same as your snippet ... */}
-
-      {/* Share Modal */}
-      {showShareModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowShareModal(false)}>
-          <div className="panel p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-lg mb-4">Share this book</h3>
-            <button onClick={copyLink} className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg">Copy Link</button>
-            <button onClick={() => setShowShareModal(false)} className="w-full mt-2 px-4 py-2 border border-gray-300 rounded-lg">Cancel</button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

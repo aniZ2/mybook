@@ -41,6 +41,11 @@ const nextConfig = {
         hostname: 'lh3.googleusercontent.com', // ✅ Google profile & Firebase user avatars
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.isbndb.com', // ✅ add ISBNdb covers
+        pathname: '/**',
+      },
     ],
   },
 };

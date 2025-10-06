@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 type BookItem = {
   id: string;
@@ -7,85 +8,155 @@ type BookItem = {
   isbn10?: string;
   isbn13?: string;
   cover?: string;
-  source: 'google' | 'openlibrary';
+  publisher?: string;
+  publishedDate?: string;
+  buyLink?: string;
+  bnLink?: string;
+  googleLink?: string;
+  genres?: string[];
+  source: 'google' | 'isbndb';
 };
 
-function normalizeGoogle(json:any): BookItem[] {
+/* ─────────────────────────────
+   Normalize Google Books
+────────────────────────────── */
+function normalizeGoogle(json: any): BookItem[] {
   const items = json?.items || [];
-  return items.map((it:any) => {
+  return items.map((it: any) => {
     const vol = it.volumeInfo || {};
     const ids = vol.industryIdentifiers || [];
-    const isbn10 = ids.find((x:any)=>x.type==='ISBN_10')?.identifier;
-    const isbn13 = ids.find((x:any)=>x.type==='ISBN_13')?.identifier;
+    const isbn10 = ids.find((x: any) => x.type === 'ISBN_10')?.identifier;
+    const isbn13 = ids.find((x: any) => x.type === 'ISBN_13')?.identifier;
     const cover = vol.imageLinks?.thumbnail || vol.imageLinks?.smallThumbnail;
+    const title = vol.title || 'Untitled';
+    const author = vol.authors?.[0] || '';
+
     return {
       id: it.id,
-      title: vol.title || 'Untitled',
+      title,
       authors: vol.authors || [],
-      isbn10, isbn13,
+      isbn10,
+      isbn13,
       cover,
-      source: 'google' as const,
+      publisher: vol.publisher || null,
+      publishedDate: vol.publishedDate || null,
+      genres: vol.categories || [],
+      buyLink: `https://www.amazon.com/s?k=${encodeURIComponent(
+        isbn13 || title + ' ' + author
+      )}`,
+      bnLink: `https://www.barnesandnoble.com/s/${encodeURIComponent(
+        isbn13 || title + ' ' + author
+      )}`,
+      googleLink: vol.infoLink || `https://books.google.com/books?id=${it.id}`,
+      source: 'google',
     };
   });
 }
 
-function normalizeOpenLibrary(json:any): BookItem[] {
-  const docs = json?.docs || [];
-  return docs.slice(0, 20).map((d:any) => {
-    const isbn10 = d.isbn?.find((x:string)=>x.length===10);
-    const isbn13 = d.isbn?.find((x:string)=>x.length===13);
-    const cover = d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-L.jpg` : undefined;
+/* ─────────────────────────────
+   Normalize ISBNdb
+────────────────────────────── */
+function normalizeISBNdb(json: any): BookItem[] {
+  const books = json?.books || [];
+  return books.slice(0, 20).map((b: any) => {
+    const title = b.title;
+    const author = b.authors?.[0] || '';
+    const genres =
+      Array.isArray(b.subjects) && b.subjects.length > 0
+        ? b.subjects
+        : b.genre
+        ? [b.genre]
+        : [];
+
     return {
-      id: d.key || d.cover_edition_key || (d.title + '-' + (d.author_name?.[0]||'')),
-      title: d.title,
-      authors: d.author_name || [],
-      isbn10, isbn13,
-      cover,
-      source: 'openlibrary' as const,
+      id: b.isbn13 || b.isbn10 || b.title,
+      title,
+      authors: b.authors || [],
+      isbn10: b.isbn10,
+      isbn13: b.isbn13,
+      cover: b.image,
+      publisher: b.publisher || null,
+      publishedDate: b.date_published || null,
+      genres,
+      buyLink: `https://www.amazon.com/s?k=${encodeURIComponent(
+        b.isbn13 || title + ' ' + author
+      )}`,
+      bnLink: `https://www.barnesandnoble.com/s/${encodeURIComponent(
+        b.isbn13 || title + ' ' + author
+      )}`,
+      googleLink: `https://books.google.com?q=${encodeURIComponent(
+        title + ' ' + author
+      )}`,
+      source: 'isbndb',
     };
   });
 }
 
-import { checkRateLimit } from '@/lib/rateLimit';
-
+/* ─────────────────────────────
+   GET handler
+────────────────────────────── */
 export async function GET(req: NextRequest) {
-  const rl = await checkRateLimit(req as any, 'generic_get', 60, 60);
-  if (!rl.ok) return new Response(JSON.stringify({ error:'rate_limited', resetAt: rl.resetAt }), { status: 429 });
+  // ✅ Basic rate limiting
+  const rl = await checkRateLimit(req as any, 'book_search', 60, 60);
+  if (!rl.ok)
+    return new Response(
+      JSON.stringify({ error: 'rate_limited', resetAt: rl.resetAt }),
+      { status: 429 }
+    );
+
   const url = new URL(req.url);
   const q = url.searchParams.get('q');
-  if (!q) return new Response(JSON.stringify({ error: 'Missing q' }), { status: 400 });
+  if (!q)
+    return new Response(JSON.stringify({ error: 'Missing q' }), { status: 400 });
 
-  // Google Books
-  const key = process.env.GOOGLE_BOOKS_KEY;
-  const googleUrl = key
-    ? `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=20&key=${key}`
-    : `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=20`;
+  const googleKey = process.env.GOOGLE_BOOKS_KEY;
+  const isbndbKey = process.env.ISBNDB_KEY;
 
-  // Open Library
-  const olUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=20`;
+  const googleUrl = googleKey
+    ? `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+        q
+      )}&maxResults=10&key=${googleKey}`
+    : `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+        q
+      )}&maxResults=10`;
 
-  const [gRes, oRes] = await Promise.all([
-    fetch(googleUrl).catch(()=>null),
-    fetch(olUrl).catch(()=>null),
+  const isbndbUrl = `https://api2.isbndb.com/books/${encodeURIComponent(
+    q
+  )}?pageSize=10`;
+
+  const [gRes, iRes] = await Promise.all([
+    fetch(googleUrl).catch(() => null),
+    isbndbKey
+      ? fetch(isbndbUrl, { headers: { Authorization: isbndbKey } }).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   const gJson = gRes && gRes.ok ? await gRes.json() : null;
-  const oJson = oRes && oRes.ok ? await oRes.json() : null;
+  const iJson = iRes && iRes.ok ? await iRes.json() : null;
 
   const googleItems = gJson ? normalizeGoogle(gJson) : [];
-  const olItems = oJson ? normalizeOpenLibrary(oJson) : [];
+  const isbndbItems = iJson ? normalizeISBNdb(iJson) : [];
 
-  // naive merge: de-dup by isbn13 or title+author
+  // ✅ Merge & deduplicate
   const seen = new Set<string>();
   const merged: BookItem[] = [];
-  const add = (b:BookItem) => {
-    const key = (b.isbn13 || b.isbn10 || `${b.title}|${(b.authors[0]||'')}`).toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    merged.push(b);
-  };
-  googleItems.forEach(add);
-  olItems.forEach(add);
 
-  return new Response(JSON.stringify({ results: merged }), { headers: { 'content-type': 'application/json' } });
+  const add = (b: BookItem) => {
+    const key = (
+      b.isbn13 ||
+      b.isbn10 ||
+      `${b.title}|${b.authors?.[0] || ''}`
+    ).toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(b);
+    }
+  };
+
+  googleItems.forEach(add);
+  isbndbItems.forEach(add);
+
+  return new Response(JSON.stringify({ results: merged }), {
+    headers: { 'content-type': 'application/json' },
+  });
 }

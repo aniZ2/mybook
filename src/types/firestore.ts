@@ -1,4 +1,3 @@
-// types/firestore.ts
 import {
   FirestoreDataConverter,
   QueryDocumentSnapshot,
@@ -47,33 +46,52 @@ export interface AuthorDoc {
 
 /* ─────────── BookDoc ─────────── */
 export interface BookDoc {
-  id: string;
+  /** Core identity */
+  id?: string;             // Firestore slug or generated ID
   slug: string;
   title: string;
+
+  /** Author info */
   authorName: string;
   authors?: string[];
-  authorId?: string | null; 
-  buyLink?: string | null;
-  previewLink?: string | null;
+  authorId?: string | null;
+
+  /** External sources */
+  source?: 'google' | 'openlibrary' | 'isbndb' | 'manual' | null;
+  sourceId?: string | null; // e.g. /works/OL27448W or Google ID
+  asin?: string | null;     // 🆕 For Amazon-exclusive books
+
+  /** Media & Links */
   coverUrl?: string | null;
+  buyLink?: string | null;      // Amazon (primary)
+  bnLink?: string | null;       // Barnes & Noble
+  googleLink?: string | null;   // Google Books preview
+  previewLink?: string | null;  // General preview (optional)
+
+  /** Metadata */
+  publisher?: string | null;
+  publishedDate?: string | null;
   description?: string | null;
   tags?: string[];
-  publishedAt?: string | number | Date | null;
+  genres?: string[];
+  moods?: string[];
+  pacing?: 'slow' | 'medium' | 'fast' | string;
   meta?: {
     isbn10?: string | null;
     isbn13?: string | null;
-    source?: string | null;
   };
 
-  // Engagement fields
+  /** Engagement */
   likesCount?: number;
   commentsCount?: number;
   savesCount?: number;
 
+  /** Timestamps */
   createdAt?: FirestoreDate;
   updatedAt?: FirestoreDate;
+  savedAt?: FirestoreDate;
+  publishedAt?: string | number | Date | null;
 }
-
 
 /* ─────────── PostDoc ─────────── */
 export interface PostDoc {
@@ -81,28 +99,14 @@ export interface PostDoc {
   userId: string;
   userName: string;
   userPhoto?: string | null;
-
-  /** Optional: reference to a book this post mentions */
   bookRef?: string | null;
-
-  /** Main post content (text, quotes, etc.) */
   content: string;
-
-  /** Optional image or media attached to the post */
   imageUrl?: string | null;
-
-  /** Engagement counts */
   likesCount: number;
   commentsCount: number;
   savesCount: number;
-
-  /** Discovery tags, moods, genres, etc. */
   tags?: string[];
-
-  /** Visibility: public feed, followers only, or private */
   visibility: 'public' | 'followers' | 'private';
-
-  /** Server-managed timestamps */
   createdAt?: FirestoreDate;
   updatedAt?: FirestoreDate;
 }
@@ -126,8 +130,8 @@ export interface ClubDoc {
   description: string;
   coverUrl: string | null;
   iconUrl: string | null;
-  ownerUid: string;        // Owner’s user ID
-  creatorName: string;     // Owner’s display name
+  ownerUid: string;
+  creatorName: string;
   membersCount: number;
   booksCount: number;
   category:
