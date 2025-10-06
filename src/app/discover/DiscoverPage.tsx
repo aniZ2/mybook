@@ -21,7 +21,7 @@ import DiscoverSection from './DiscoverSection';
 import BookCard from './BookCard';
 import AuthorCard from './AuthorCard';
 import styles from './DiscoverPage.module.css';
-import { BookDoc, AuthorDoc, PostDoc } from '@/types/firestore'; 
+import { BookDoc, AuthorDoc, PostDoc } from '@/types/firestore';
 
 interface DiscoverPageProps {
   user?: { uid: string };
@@ -61,7 +61,7 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
 
-  /* ─────────────── Load Discovery Feeds (PARALLELIZED) ─────────────── */
+  /* ─────────────── Load Discovery Feeds ─────────────── */
   useEffect(() => {
     (async () => {
       try {
@@ -123,7 +123,7 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
     })();
   }, [user?.uid]);
 
-  /* ─────────────── Search (Firestore + External) ─────────────── */
+  /* ─────────────── Search ─────────────── */
   async function runSearch(e?: React.FormEvent) {
     e?.preventDefault();
     if (!q.trim()) return;
@@ -167,52 +167,20 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
     const snap = await getDoc(ref);
     if (snap.exists()) return slug;
 
-    let description: string | null = null;
-    let previewLink: string | null = null;
-    let buyLink: string | null = b.buyLink || null;
-    let genres: string[] = [];
-
-    try {
-      if (b.source === 'google') {
-        const g = await fetch(`https://www.googleapis.com/books/v1/volumes/${b.id}`).then((r) => r.json());
-        const v = g.volumeInfo || {};
-        description = v.description ? stripHtml(v.description) : null;
-        previewLink = v.previewLink ?? b.googleLink ?? null;
-        buyLink = b.buyLink || g.saleInfo?.buyLink || null;
-        genres = v.categories || [];
-      } else if (b.source === 'isbndb') {
-        description = b.publisher || null;
-        genres = (b as any).subjects || (b as any).genre ? [((b as any).subjects || (b as any).genre)] : [];
-      } else if (b.source === 'amazon' && b.asin) {
-        description = `Amazon listing for ASIN ${b.asin}`;
-        previewLink = `https://www.amazon.com/dp/${b.asin}`;
-        buyLink = previewLink;
-      }
-    } catch (err) {
-      console.warn('Could not fetch full details', err);
-    }
-
     await setDoc(ref, {
       slug,
       title: b.title,
       authorName: b.authors?.[0] || 'Unknown',
       authors: b.authors || [],
       coverUrl: b.cover || null,
-      description,
-      previewLink,
-      buyLink,
+      description: b.publisher || null,
+      previewLink: b.googleLink || null,
+      buyLink: b.buyLink || null,
       bnLink: b.bnLink || null,
       googleLink: b.googleLink || null,
       publisher: b.publisher || null,
       publishedDate: b.publishedDate || null,
-      genres,
-      moods: [],
-      pacing: 'medium',
-      meta: {
-        isbn10: b.isbn10 || null,
-        isbn13: b.isbn13 || null,
-        asin: b.asin || null,
-      },
+      genres: b.genres || [],
       createdAt: serverTimestamp(),
       savedAt: serverTimestamp(),
     });
@@ -220,7 +188,6 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
     return slug;
   }
 
-  /* ─────────────── View Details ─────────────── */
   async function viewDetails(b: BookItem) {
     try {
       setSaving(b.id);
@@ -238,7 +205,7 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
   return (
     <div className={styles.container}>
       <motion.section
-        className="panel"
+        className={styles.introPanel}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
@@ -249,34 +216,28 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
           Browse trending titles, get personalized picks, and meet the authors behind the stories.
         </p>
 
+        {/* Mobile-first search bar */}
         <form onSubmit={runSearch} className={styles.searchBar}>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by title, author, ISBN, or ASIN..."
-          />
-          <a
-            href="/scan"
-            style={{
-              background: '#1e293b',
-              color: '#fff',
-              padding: '0.5rem 0.8rem',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              marginLeft: '0.5rem',
-              fontSize: '0.9rem',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <div className={styles.searchRow}>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by title, author, ISBN, or ASIN..."
+              className={styles.searchInput}
+            />
+            <button disabled={busy} className={styles.searchButton}>
+              {busy ? 'Searching...' : 'Search'}
+            </button>
+          </div>
+
+          <a href="/scan" className={styles.scanLink}>
             📷 Scan ISBN
           </a>
-          <button disabled={busy}>
-            {busy ? (saving ? 'Saving...' : 'Searching...') : 'Search'}
-          </button>
         </form>
 
         {error && <p className={styles.error}>{error}</p>}
 
+        {/* Search results */}
         <AnimatePresence>
           {!busy &&
             items.map((b, idx) => (
@@ -285,69 +246,45 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className={`${styles.resultCard} panel`}
+                className={styles.resultCard}
                 onClick={() => viewDetails(b)}
               >
-                {b.cover && (
-                  <img src={b.cover} alt={b.title} className={styles.resultCover} />
-                )}
-                <div>
+                {b.cover && <img src={b.cover} alt={b.title} className={styles.resultCover} />}
+                <div className={styles.resultInfo}>
                   <h3>{b.title}</h3>
                   <p>{b.authors.join(', ')}</p>
-                  {b.genres && b.genres.length > 0 && (
-                    <div className={styles.genreTags}>
-                      {b.genres.slice(0, 3).map((g) => (
-                        <span key={g} className={styles.genreTag}>
-                          {g}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </motion.div>
             ))}
         </AnimatePresence>
       </motion.section>
 
-      {/* Featured Books Section */}
       <DiscoverSection title="Featured Books">
-        {featured.map((b) => (
-          <BookCard key={b.slug || b.id} book={b} />
-        ))}
+        {featured.map((b) => <BookCard key={b.slug || b.id} book={b} />)}
       </DiscoverSection>
 
-      {/* Trending Books */}
       <DiscoverSection title="Trending Books">
-        {trending.map((b) => (
-          <BookCard key={b.slug || b.id} book={b} />
-        ))}
+        {trending.map((b) => <BookCard key={b.slug || b.id} book={b} />)}
       </DiscoverSection>
 
-      {/* Recommended For You */}
       {user && forYou.length > 0 && (
         <DiscoverSection title="Recommended For You">
-          {forYou.map((b) => (
-            <BookCard key={b.slug || b.id} book={b} />
-          ))}
+          {forYou.map((b) => <BookCard key={b.slug || b.id} book={b} />)}
         </DiscoverSection>
       )}
 
-      {/* Emerging Authors */}
       <DiscoverSection title="Emerging Authors">
-        {authors.map((a) => (
-          <AuthorCard key={a.slug} author={a} />
-        ))}
+        {authors.map((a) => <AuthorCard key={a.slug} author={a} />)}
       </DiscoverSection>
 
       <motion.div
-        className="panel"
+        className={styles.authorCTA}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        style={{ textAlign: 'center', marginTop: '2rem' }}
       >
         <h2>✍️ Are you an author?</h2>
         <p>Feature your book and reach thousands of readers.</p>
-        <a href="/author/submit" className="btn btn-primary">
+        <a href="/author/submit" className={styles.ctaButton}>
           Submit Your Book
         </a>
       </motion.div>
