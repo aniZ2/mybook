@@ -17,7 +17,10 @@
         ".git",
         "firebase-debug.log",
         "firebase-debug.*.log",
-        "*.local"
+        "*.local",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        ".runtimeconfig.json"
       ],
       "source": "functions"
     }
@@ -43,10 +46,12 @@
         "firebase-debug.log",
         "firebase-debug.*.log",
         "functions"
-      ]
+      ],
+      "alwaysDeployFromSource": true
     }
   ],
   "storage": {
-    "rules": "storage.rules"
+    "rules": "storage.rules",
+    "bucket": "booklyverse.firebasestorage.app"
   }
 }

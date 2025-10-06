@@ -1,31 +1,29 @@
 // src/lib/firebase-admin.ts
-
 import * as admin from 'firebase-admin';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-// Environment variable containing the Service Account JSON string
-const serviceAccountString = process.env.SERVICE_ACCOUNT_JSON;
+let adminDb: Firestore | null = null;
 
-let adminDb: Firestore;
+// Try to initialize only if the env var exists
+const serviceAccountString = process.env.SERVICE_ACCOUNT_JSON;
 
 if (!admin.apps.length) {
   if (!serviceAccountString) {
-    throw new Error('SERVICE_ACCOUNT_JSON environment variable is not set. Cannot initialize Admin SDK.');
-  }
-  
-  try {
-    const credentials = JSON.parse(serviceAccountString);
-
-    admin.initializeApp({
-      credential: admin.credential.cert(credentials),
-    });
-  } catch (error) {
-    console.error('Failed to parse or initialize Firebase Admin SDK:', error);
-    throw new Error('Invalid Firebase Admin credentials format. Check SERVICE_ACCOUNT_JSON content.');
+    // 🩶 During Firebase App Hosting build, this often isn't injected yet.
+    console.warn('⚠️ Skipping Firebase Admin init — SERVICE_ACCOUNT_JSON not found (build stage).');
+  } else {
+    try {
+      const credentials = JSON.parse(serviceAccountString);
+      admin.initializeApp({
+        credential: admin.credential.cert(credentials),
+      });
+      adminDb = getFirestore();
+      console.log('✅ Firebase Admin initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to parse or initialize Firebase Admin SDK:', error);
+    }
   }
 }
 
-adminDb = getFirestore();
-
-// ✅ CORRECT EXPORT: Explicitly export both adminDb and the admin namespace
+// Always export (even if null) to prevent import crashes
 export { adminDb, admin };

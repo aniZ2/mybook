@@ -21,7 +21,6 @@ import { slugify } from '@/lib/slug';
 import DiscoverSection from './DiscoverSection';
 import BookCard from './BookCard';
 import AuthorCard from './AuthorCard';
-import ReaderPostCard from './ReaderPostCard';
 import styles from './DiscoverPage.module.css';
 // NOTE: Assuming you have corresponding type definitions in '@/types/firestore'
 import { BookDoc, AuthorDoc, PostDoc } from '@/types/firestore'; 
@@ -356,11 +355,16 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
         ))}
       </DiscoverSection>
 
-      <DiscoverSection title="Reader Posts">
-        {posts.map((p) => (
-          <ReaderPostCard key={p.id} post={p} />
-        ))}
-      </DiscoverSection>
+      {/* ✍️ CTA */}
+      <motion.div className="panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: 'center', marginTop: '2rem' }}>
+        <h2>✍️ Are you an author?</h2>
+        <p>Feature your book and reach thousands of readers.</p>
+        <a href="/author/submit" className="btn btn-primary">
+          Submit Your Book
+        </a>
+      </motion.div>
     </div>
   );
 }
+
+
