@@ -1,22 +1,27 @@
 export const dynamic = "force-dynamic";
 
-import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit } from '@/lib/rateLimit';
-import { adminDb, admin } from '@/lib/firebase-admin';
-import algoliasearch from 'algoliasearch';
+import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { adminDb, admin } from "@/lib/firebase-admin";
+import algoliasearch from "algoliasearch";
 
-// --- Algolia Client Setup ---
+// ─────────── ALGOLIA CLIENT (Server-side Admin Key) ───────────
+if (!process.env.ALGOLIA_APP_ID || !process.env.ALGOLIA_ADMIN_KEY) {
+  console.error("⚠️ Missing Algolia credentials. Check your .env file.");
+}
+
 const client = algoliasearch(
-  process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
-  process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY!
+  process.env.ALGOLIA_APP_ID!,
+  process.env.ALGOLIA_ADMIN_KEY!
 );
-const index = client.initIndex(process.env.ALGOLIA_INDEX_NAME || 'books');
 
-// --- External API Keys ---
+const index = client.initIndex(process.env.ALGOLIA_INDEX_NAME || "books");
+
+// ─────────── External API Keys ───────────
 const googleKey = process.env.GOOGLE_BOOKS_KEY;
 const isbndbKey = process.env.ISBNDB_KEY;
 
-// --- Type ---
+// ─────────── Types ───────────
 type BookItem = {
   id: string;
   title: string;
@@ -31,16 +36,18 @@ type BookItem = {
   bnLink?: string;
   googleLink?: string;
   genres?: string[];
-  source: 'algolia' | 'google' | 'isbndb';
+  source: "algolia" | "google" | "isbndb";
 };
 
-/* ─────────── Helper: Robust External API Fetch ─────────── */
-async function robustFetch(url: string, name: string, options?: RequestInit): Promise<{ json: any } | null> {
+/* ─────────── Robust External Fetch ─────────── */
+async function robustFetch(url: string, name: string, options?: RequestInit) {
   try {
     const res = await fetch(url, options);
     if (!res.ok) {
       const errorText = await res.text();
-      console.error(`External API Error (${name}): Status ${res.status}. Response: ${errorText.slice(0, 100)}...`);
+      console.error(
+        `External API Error (${name}): ${res.status} — ${errorText.slice(0, 120)}...`
+      );
       return null;
     }
     const json = await res.json();
@@ -57,11 +64,11 @@ function normalizeGoogle(json: any): BookItem[] {
   return items.map((it: any) => {
     const v = it.volumeInfo || {};
     const ids = v.industryIdentifiers || [];
-    const isbn10 = ids.find((x: any) => x.type === 'ISBN_10')?.identifier;
-    const isbn13 = ids.find((x: any) => x.type === 'ISBN_13')?.identifier;
+    const isbn10 = ids.find((x: any) => x.type === "ISBN_10")?.identifier;
+    const isbn13 = ids.find((x: any) => x.type === "ISBN_13")?.identifier;
     return {
       id: it.id,
-      title: v.title || 'Untitled',
+      title: v.title || "Untitled",
       authors: v.authors || [],
       isbn10,
       isbn13,
@@ -71,7 +78,7 @@ function normalizeGoogle(json: any): BookItem[] {
       genres: v.categories || [],
       buyLink: v.infoLink || null,
       googleLink: `https://books.google.com/books?id=${it.id}`,
-      source: 'google',
+      source: "google",
     };
   });
 }
@@ -79,9 +86,12 @@ function normalizeGoogle(json: any): BookItem[] {
 function normalizeISBNdb(json: any): BookItem[] {
   const books = json?.books || [];
   return books.slice(0, 10).map((b: any) => {
-    const genres = Array.isArray(b.subjects) && b.subjects.length > 0
-      ? b.subjects
-      : b.genre ? [b.genre] : [];
+    const genres =
+      Array.isArray(b.subjects) && b.subjects.length > 0
+        ? b.subjects
+        : b.genre
+        ? [b.genre]
+        : [];
     return {
       id: b.isbn13 || b.isbn10 || b.title,
       title: b.title,
@@ -92,61 +102,84 @@ function normalizeISBNdb(json: any): BookItem[] {
       publisher: b.publisher || null,
       publishedDate: b.date_published || null,
       genres,
-      buyLink: `https://www.amazon.com/s?k=${encodeURIComponent(b.isbn13 || b.title)}`,
-      bnLink: `https://www.barnesandnoble.com/s/${encodeURIComponent(b.isbn13 || b.title)}`,
+      buyLink: `https://www.amazon.com/s?k=${encodeURIComponent(
+        b.isbn13 || b.title
+      )}`,
+      bnLink: `https://www.barnesandnoble.com/s/${encodeURIComponent(
+        b.isbn13 || b.title
+      )}`,
       googleLink: `https://books.google.com?q=${encodeURIComponent(b.title)}`,
-      source: 'isbndb',
+      source: "isbndb",
     };
   });
 }
 
-/* ─────────── Helper: Safe Logging ─────────── */
+/* ─────────── Safe Logging to Firestore ─────────── */
 async function safeAddSearchEvent(q: string) {
   try {
     if (!adminDb) return;
-    await adminDb.collection('search_events').add({
+    await adminDb.collection("search_events").add({
       query: q,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
   } catch (e) {
-    console.warn('Failed to log search event:', e);
+    console.warn("Failed to log search event:", e);
   }
 }
 
 /* ─────────── Main GET Handler ─────────── */
 export async function GET(req: NextRequest) {
-  const rl = await checkRateLimit(req as any, 'book_search', 60, 60);
-  if (!rl.ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  const rl = await checkRateLimit(req as any, "book_search", 60, 60);
+  if (!rl.ok)
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const url = new URL(req.url);
-  const q = url.searchParams.get('q');
-  if (!q) return NextResponse.json({ error: 'missing query' }, { status: 400 });
+  const q = url.searchParams.get("q");
+  if (!q)
+    return NextResponse.json({ error: "missing_query" }, { status: 400 });
 
   try {
-    // 1. Try Algolia (Local Cache)
-    const algoliaRes = await index.search<BookItem>(q, { hitsPerPage: 10 });
-    const localResults = algoliaRes.hits.map((h) => ({
-      ...h,
-      id: h.objectID,
-      source: 'algolia' as const,
-    }));
+    /* ─────────── 1. Try Algolia First ─────────── */
+    let localResults: BookItem[] = [];
+    try {
+      const algoliaRes = await index.search<BookItem>(q, { hitsPerPage: 10 });
+      localResults = algoliaRes.hits.map((h) => ({
+        ...h,
+        id: h.objectID,
+        source: "algolia" as const,
+      }));
+      console.log(
+        `✅ Algolia returned ${localResults.length} result(s) for "${q}".`
+      );
+    } catch (err: any) {
+      console.warn("⚠️ Algolia search failed, using fallbacks:", err.message);
+    }
 
-    // 2. Return Algolia if enough results
+    // If Algolia gives us enough data, return it immediately
     if (localResults.length >= 5) {
       await safeAddSearchEvent(q);
       return NextResponse.json({ results: localResults });
     }
 
-    // 3. Fallback to External APIs
+    /* ─────────── 2. Fallback to Google + ISBNdb ─────────── */
     const googleUrl = googleKey
-      ? `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&key=${googleKey}`
-      : `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10`;
-    const isbndbUrl = `https://api2.isbndb.com/books/${encodeURIComponent(q)}?pageSize=10`;
+      ? `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+          q
+        )}&maxResults=10&key=${googleKey}`
+      : `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+          q
+        )}&maxResults=10`;
+
+    const isbndbUrl = `https://api2.isbndb.com/books/${encodeURIComponent(
+      q
+    )}?pageSize=10`;
 
     const [gRes, iRes] = await Promise.all([
-      robustFetch(googleUrl, 'Google Books'),
+      robustFetch(googleUrl, "Google Books"),
       isbndbKey
-        ? robustFetch(isbndbUrl, 'ISBNdb', { headers: { Authorization: isbndbKey } })
+        ? robustFetch(isbndbUrl, "ISBNdb", {
+            headers: { Authorization: isbndbKey },
+          })
         : Promise.resolve(null),
     ]);
 
@@ -154,9 +187,15 @@ export async function GET(req: NextRequest) {
     const isbndbItems = iRes?.json ? normalizeISBNdb(iRes.json) : [];
 
     const allResults = [...localResults, ...googleItems, ...isbndbItems];
+
+    /* ─────────── 3. Deduplicate & Log ─────────── */
     const seen = new Set();
     const deduped = allResults.filter((b) => {
-      const key = (b.isbn13 || b.isbn10 || b.title + (b.authors?.[0] || '')).toLowerCase();
+      const key = (
+        b.isbn13 ||
+        b.isbn10 ||
+        b.title + (b.authors?.[0] || "")
+      ).toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -164,9 +203,16 @@ export async function GET(req: NextRequest) {
 
     if (deduped.length > 0) await safeAddSearchEvent(q);
 
+    console.log(
+      `✅ Search completed — ${deduped.length} unique results for "${q}".`
+    );
+
     return NextResponse.json({ results: deduped });
   } catch (err: any) {
-    console.error('Search error (Fatal Crash):', err);
-    return NextResponse.json({ error: 'search_failed_internal' }, { status: 500 });
+    console.error("💥 Search route crashed:", err);
+    return NextResponse.json(
+      { error: err.message || "search_failed_internal" },
+      { status: 500 }
+    );
   }
 }

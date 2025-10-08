@@ -6,14 +6,8 @@ import DiscoverPage from './DiscoverPage';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
- * This lightweight wrapper makes the page "auth-aware"
- * and passes the current user's UID down to DiscoverPage.
- *
- * - Keeps DiscoverPage as a reusable component
- * - Avoids Next.js "invalid page prop" warnings
- * - Ensures everything runs in the client for Firestore access
+ * Auth-aware wrapper — keeps DiscoverPage reusable
  */
-
 export default function DiscoverPageWrapper() {
   const { user, loading } = useAuth();
 

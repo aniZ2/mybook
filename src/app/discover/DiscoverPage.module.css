@@ -1,291 +1,299 @@
 /* ─────────────── Global Container ─────────────── */
 .container {
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 1.25rem 1rem;
   box-sizing: border-box;
 }
 
-/* ─────────────── Page & Section Titles ─────────────── */
+/* ─────────────── Page Titles ─────────────── */
 .pageTitle {
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  color: var(--accent-color, #aea309);
-  margin-bottom: 1.5rem;
-  text-transform: capitalize;
+  color: var(--accent-color, #facc15);
+  margin-bottom: 0.75rem;
+  text-align: center;
+  line-height: 1.3;
 }
 
-.sectionTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--title-color, #aea309);
-  margin-bottom: 1rem;
-  text-transform: capitalize;
+.pageIntro {
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  text-align: center;
+  max-width: 520px;
+  margin: 0 auto 1.75rem;
+  line-height: 1.6;
 }
 
 /* ─────────────── Search Section ─────────────── */
 .searchBar {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  margin: 1.5rem auto 2rem;
+  width: 100%;
+  max-width: 600px;
 }
 
-.searchBar input {
-  flex: 1;
-  padding: 0.65rem 0.9rem;
+.searchInput {
+  width: 100%;
+  padding: 0.95rem 1.25rem;
   border: 1px solid #334155;
-  border-radius: 6px;
+  border-radius: 9999px; /* pill style */
   background: #1e293b;
   color: #f1f5f9;
   font-size: 1rem;
   outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.searchBar input::placeholder {
+.searchInput::placeholder {
   color: #94a3b8;
 }
 
-.searchBar input:focus {
-  border-color: #aea309;
-  background: #273549;
+.searchInput:focus {
+  border-color: var(--accent-color, #facc15);
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.25);
 }
 
-.searchBar button {
-  background: #222;
-  color: #fff;
-  border: none;
-  padding: 0.65rem 1.2rem;
-  border-radius: 6px;
-  font-size: 0.95rem;
+/* ─────────────── Buttons Row ─────────────── */
+.searchButtonsRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+
+/* Unified Pill Buttons */
+.searchButton,
+.scanLink {
+  all: unset;
+  display: inline-block;
+  background: linear-gradient(180deg, #facc15, #eab308);
+  color: #111 !important;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.8rem 2.75rem;
   cursor: pointer;
-  transition: background 0.2s ease;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.25);
+  min-width: 160px;
+  line-height: 1.2;
 }
 
-.searchBar button:hover:not(:disabled) {
-  background: #000;
+.searchButton:hover,
+.scanLink:hover {
+  background: linear-gradient(180deg, #fde047, #facc15);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(250, 204, 21, 0.35);
 }
 
-.searchBar button:disabled {
-  opacity: 0.6;
+.searchButton:disabled,
+.scanLink[aria-disabled='true'] {
+  background: linear-gradient(180deg, #b45309, #92400e);
+  opacity: 0.55;
   cursor: not-allowed;
+  color: #222 !important;
+  box-shadow: none;
 }
 
 /* ─────────────── Search Results ─────────────── */
 .resultCard {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 0.75rem;
   border-radius: 10px;
-  background: #1e293b;          /* dark slate background */
-  border: 1px solid #334155;     /* subtle blue-gray border */
-  color: #f1f5f9;                /* light text */
-  transition: background 0.2s ease, transform 0.2s ease;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #f1f5f9;
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s ease;
 }
 
-.resultCard:hover {
-  background: #273549;
-  transform: translateY(-2px);
+.resultCard:active {
+  transform: scale(0.98);
 }
 
 .resultCover {
-  width: 70px;
-  height: 100px;
+  width: 80px;
+  height: 110px;
   border-radius: 6px;
   object-fit: cover;
   flex-shrink: 0;
 }
 
-/* ─────────────── Genre Filter Bar ─────────────── */
-.genreBar {
+/* ─────────────── Book Cards ─────────────── */
+.bookCard {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1rem 0 1.5rem;
-}
-
-.genreBar button {
-  padding: 0.4rem 0.8rem;
-  border: 1px solid #aea309;
-  border-radius: 4px;
-  cursor: pointer;
-  background: #1e293b;
-  color: #f1f5f9;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-}
-
-.genreBar button:hover {
-  background: #273549;
-}
-
-.activeGenre {
-  background: #aea309;
-  color: #111;
-  border-color: #aea309;
-}
-
-/* ─────────────── Featured & Discovery Grid ─────────────── */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1.5rem;
-}
-
-.card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  text-decoration: none;
-  color: #f1f5f9;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  flex-direction: column;
+  align-items: center;
+  background: #111827;
+  border-radius: 10px;
   overflow: hidden;
+  flex: 0 0 auto;
+  width: 140px;
+  scroll-snap-align: start;
+  transition: transform 0.25s ease;
 }
 
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+.bookCard:hover {
+  transform: translateY(-4px);
 }
 
-.card img {
+.coverWrapper {
+  display: block;
   width: 100%;
-  height: 250px;
-  object-fit: cover;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.card h3 {
+.bookCover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.noCover {
+  width: 100%;
+  height: 210px;
+  background: #334155;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+/* Hide info & buy rows under cover */
+.infoBlock,
+.buyRow {
+  display: none;
+}
+
+/* ─────────────── Author CTA ─────────────── */
+.authorCTA {
+  text-align: center;
+  margin: 3rem auto 2rem;
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 2rem 1.5rem;
+  max-width: 600px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.authorCTA h2 {
+  color: var(--accent-color, #facc15);
+  font-family: 'Merriweather', serif;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.authorCTA p {
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.ctaButton {
+  background: var(--accent-color, #facc15);
+  color: #111;
+  border: none;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.25s ease, transform 0.15s ease;
+}
+
+.ctaButton:hover {
+  background: #fbbf24;
+  transform: translateY(-2px);
+}
+
+/* ─────────────── Responsive ─────────────── */
+@media (max-width: 600px) {
+  .searchButtonsRow {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .searchButton,
+  .scanLink {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .bookCard {
+    width: 120px;
+  }
+
+  .bookCover {
+    height: 180px;
+  }
+}
+/* ─────────────── Result Info ─────────────── */
+.resultInfo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.resultInfo h3 {
   font-size: 1rem;
   font-weight: 600;
-  margin: 0.75rem 0 0.25rem;
-  padding: 0 0.75rem;
+  color: #f8fafc;
+  margin: 0;
 }
 
-.card p {
-  font-size: 0.9rem;
+.resultInfo p {
+  font-size: 0.875rem;
   color: #94a3b8;
-  margin: 0 0 0.75rem;
-  padding: 0 0.75rem;
+  margin: 0;
 }
 
-/* ─────────────── DiscoverSection Wrapper ─────────────── */
-.section {
-  margin-top: 3rem;
-  padding: 1rem 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+/* ─────────────── Error Message ─────────────── */
+.error {
+  color: #f87171;
+  font-weight: 500;
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.95rem;
+}
+/* ─────────────── Intro Panel ─────────────── */
+.introPanel {
+  text-align: center;
+  margin-bottom: 2rem;
+  animation: fadeIn 0.6s ease-in-out;
 }
 
-.sectionContent {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1.5rem;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-/* ─────────────── CTA / Buttons ─────────────── */
-.primaryBtn {
-  background: #aea309;
-  color: #111;
-  padding: 0.8rem 1.5rem;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: 600;
-  display: inline-block;
-  margin-top: 1rem;
-  transition: background 0.2s ease;
-}
-
-.primaryBtn:hover {
-  background: #c8bb0b;
-}
-
-/* ─────────────── Responsive Design ─────────────── */
-@media (max-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  }
-
-  .searchBar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .searchBar button {
-    width: 100%;
-  }
-}
-
-/* ─────────────── Optional Dark Mode ─────────────── */
-@media (prefers-color-scheme: dark) {
-  .container {
-    background: #0f172a;
-    color: #f5f5f5;
-  }
-
-  .pageTitle,
-  .sectionTitle {
-    color: #aea309;
-  }
-}
-/* ─────────────── BookCard Enhancements ─────────────── */
-.titleLink {
-  text-decoration: none;
-  color: inherit;
-}
-
-.buyLinks {
+.noCover {
+  width: 80px;
+  height: 110px;
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  color: #94a3b8;
   display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin: 0.5rem 0 0.75rem;
-}
-
-.buyBtn,
-.buyBtnAlt {
-  background: #1e293b;
-  color: #fff;
-  border: none;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.buyBtn:hover {
-  background: #334155;
-}
-
-.buyBtnAlt {
-  background: #aea309;
-  color: #111;
-}
-
-.buyBtnAlt:hover {
-  background: #d1c007;
-}
-.genreTags {
-  margin-top: 0.4rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.genreTag {
-  background: linear-gradient(135deg, #d4af37, #f5d76e);
-  color: #222;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
-  border-radius: 999px;
-  text-transform: capitalize;
-  letter-spacing: 0.3px;
-  box-shadow: 0 0 3px rgba(255, 215, 0, 0.3);
-  transition: transform 0.2s ease;
-}
-
-.genreTag:hover {
-  transform: scale(1.08);
+  font-size: 0.85rem;
+  text-align: center;
 }

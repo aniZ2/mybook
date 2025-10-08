@@ -45,3 +45,4 @@ next-env.d.ts
 *.serviceKey.json
 serviceAccountKey.json
 firebase-adminsdk-*.json
+functions/node_modules/

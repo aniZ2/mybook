@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // ✅ uses SafeNextImage automatically
 import styles from './DiscoverPage.module.css';
 import type { BookDoc } from '@/types/firestore';
 
@@ -15,29 +16,33 @@ interface BookCardProps {
 
 export default function BookCard({ book }: BookCardProps) {
   return (
-    <div className={styles.card}>
+    <div className={styles.bookCard}>
       {/* Cover */}
-      {book.coverUrl && (
-        <img
-          src={book.coverUrl}
-          alt={book.title}
-          className={styles.cover}
-          loading="lazy"
-        />
-      )}
-
-      {/* Title */}
-      <Link href={`/books/${book.slug}`} className={styles.titleLink}>
-        <h3 className={styles.title}>{book.title}</h3>
+      <Link href={`/books/${book.slug}`} className={styles.coverWrapper}>
+        {book.coverUrl ? (
+          <Image
+            src={book.coverUrl}
+            alt={book.title}
+            width={140}
+            height={210}
+            className={styles.bookCover}
+            loading="lazy"
+          />
+        ) : (
+          <div className={styles.noCover}>No Cover</div>
+        )}
       </Link>
 
-      {/* Author */}
-      {book.authorName && (
-        <p className={styles.author}>by {book.authorName}</p>
-      )}
+      {/* Title + Author */}
+      <div className={styles.infoBlock}>
+        <h3 className={styles.bookTitle}>{book.title}</h3>
+        {book.authorName && (
+          <p className={styles.bookAuthor}>by {book.authorName}</p>
+        )}
+      </div>
 
       {/* Buy Links */}
-      <div className={styles.buyLinks}>
+      <div className={styles.buyRow}>
         {book.buyLink && (
           <a
             href={book.buyLink}

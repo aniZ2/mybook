@@ -1,95 +1,107 @@
-/* ─────────────── Section Container ─────────────── */
+/* ─────────────── Section Wrapper ─────────────── */
 .section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  position: relative;
   margin: 2.5rem 0;
+  overflow: hidden;
+  padding: 0 0.5rem;
 }
 
+/* Header row with title + optional link */
 .header {
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
-  padding: 0 0.25rem;
+  align-items: center;
+  margin-bottom: 0.8rem;
 }
 
 .title {
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #aea309;
-  font-family: 'Merriweather', serif;
+  color: var(--accent-color, #aea309);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .link {
-  font-size: 0.9rem;
-  color: #aea309;
+  font-size: 0.85rem;
+  color: #facc15;
   cursor: pointer;
-  text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .link:hover {
-  color: #1e40af;
+  color: #fde047;
 }
 
-/* ─────────────── Horizontal Scroll Container ─────────────── */
+/* ─────────────── Horizontal Scroll Row ─────────────── */
 .scrollRow {
   display: flex;
   gap: 1rem;
   overflow-x: auto;
-  padding-bottom: 0.75rem;
+  scroll-behavior: smooth;
+  padding-bottom: 0.5rem;
   scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
 }
 
+/* Cards stay aligned */
+.scrollRow > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* Subtle scrollbar customization */
 .scrollRow::-webkit-scrollbar {
   height: 8px;
 }
 
 .scrollRow::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 4px;
+  background: rgba(255, 215, 0, 0.25);
+  border-radius: 10px;
 }
 
 .scrollRow::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
+  background: rgba(255, 215, 0, 0.45);
 }
 
-/* Each child (BookCard, AuthorCard, etc.) */
-.scrollRow > * {
-  flex: 0 0 auto;
-  scroll-snap-align: start;
-  min-width: 160px;
-  max-width: 180px;
+.scrollRow::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
 }
 
-/* ─────────────── Empty State ─────────────── */
+/* ─────────────── Empty Placeholder ─────────────── */
 .empty {
-  text-align: center;
-  color: #6b7280;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  color: #64748b;
   padding: 1rem 0;
+  text-align: center;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(17, 24, 39, 0.35);
 }
 
-/* ─────────────── Responsive ─────────────── */
-@media (max-width: 768px) {
-  .title {
-    font-size: 1.2rem;
-  }
-
-  .scrollRow > * {
-    min-width: 140px;
-    max-width: 160px;
-  }
+/* ─────────────── Optional Fade Edge ─────────────── */
+.section::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 40px;
+  background: linear-gradient(to left, #0f172a, transparent);
+  pointer-events: none;
 }
 
+/* ─────────────── Responsive Tweaks ─────────────── */
 @media (max-width: 480px) {
-  .scrollRow {
-    gap: 0.75rem;
+  .section {
+    margin: 1.75rem 0;
+    padding: 0 0.25rem;
   }
 
   .title {
-    font-size: 1.1rem;
+    font-size: 1rem;
+  }
+
+  .scrollRow {
+    gap: 0.8rem;
   }
 }

@@ -21,7 +21,7 @@ import Link from 'next/link';
 import AddReview from './AddReview';
 import ReviewsList from './ReviewsList';
 import type { BookDoc, ReviewDoc, ClubDoc } from '@/types/firestore';
-import { slugify } from '@/utils/slugify';
+import { slugify } from '@/lib/slug';
 
 export default function BookDetailsClient({ slug }: { slug: string }) {
   const [user] = useAuthState(auth);
@@ -47,10 +47,13 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
         }
 
         const bookData = snap.data() as BookDoc;
-        if (!bookData.id) bookData.id = slug;
-        if (!bookData.authorId && bookData.authorName) {
+
+        // ✅ Ensure proper slug/id consistency
+        bookData.id = bookData.id || slug;
+        bookData.slug = bookData.slug || slug;
+        if (!bookData.authorId && bookData.authorName)
           bookData.authorId = slugify(bookData.authorName);
-        }
+
         setBook(bookData);
 
         /* ─── Reviews ─── */
@@ -87,11 +90,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
 
         for (const clubDoc of clubsSnap.docs) {
           const clubBooksRef = collection(db, 'clubs', clubDoc.id, 'books');
-          const bookQuery = query(
-            clubBooksRef,
-            where('id', '==', bookData.id),
-            limit(1)
-          );
+          const bookQuery = query(clubBooksRef, where('id', '==', bookData.id), limit(1));
           const bookSnap = await getDocs(bookQuery);
           if (!bookSnap.empty) clubsWithThisBook.push(clubDoc.data() as ClubDoc);
         }
@@ -147,6 +146,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
       setShowShareModal(true);
     }
   };
+
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     alert('Link copied!');
@@ -191,15 +191,23 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
         <p className="text-gray-400 mb-4">
           We couldn’t locate this title. Try searching again.
         </p>
-        <Link href="/discover" className="text-blue-500 hover:underline">
+        <Link href="/discover" className="text-yellow-500 hover:underline">
           ← Back to Discover
         </Link>
       </main>
     );
 
   return (
-    <main className="container py-8 max-w-5xl mx-auto">
-      <section className="panel p-6">
+    <main className="container py-8 max-w-5xl mx-auto text-gray-100">
+      <Link
+        href="/discover"
+        className="inline-block mb-6 text-yellow-500 hover:text-yellow-400 font-medium"
+      >
+        ← Back to Discover
+      </Link>
+
+      {/* ─────────── Book Panel ─────────── */}
+      <section className="bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-lg">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Cover */}
           {book.coverUrl ? (
@@ -208,29 +216,27 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
               alt={book.title}
               width={160}
               height={240}
-              className="rounded-lg object-contain shadow-md bg-gray-100"
+              className="rounded-lg object-contain shadow-md bg-slate-800"
             />
           ) : (
-            <div className="w-40 h-60 bg-gray-300 rounded flex items-center justify-center text-xs font-medium">
+            <div className="w-40 h-60 bg-slate-700 rounded flex items-center justify-center text-xs font-medium text-gray-300">
               No Cover
             </div>
           )}
 
           {/* Info */}
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">{book.title}</h1>
-            <p className="text-gray-500 mt-1">
+            <h1 className="text-2xl font-bold text-yellow-400">{book.title}</h1>
+            <p className="text-gray-400 mt-1">
               by {book.authors?.join(', ') || book.authorName}
             </p>
 
-            {/* Ratings */}
             {averageRating !== null && (
               <div className="mt-3 text-sm text-yellow-400">
                 ⭐ {averageRating.toFixed(1)} / 5 ({totalReviews} reviews)
               </div>
             )}
 
-            {/* Metadata */}
             <div className="mt-3 text-sm text-gray-400 space-y-1">
               {book.publisher && <p>Publisher: {book.publisher}</p>}
               {book.publishedDate && <p>Published: {book.publishedDate}</p>}
@@ -239,16 +245,15 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
               {book.asin && <p>ASIN: {book.asin}</p>}
             </div>
 
-            {/* Buy Links */}
             <div className="mt-5 flex flex-wrap gap-3">
               {amazonUrl && (
                 <a
                   href={amazonUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 transition"
+                  className="px-4 py-2 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition"
                 >
-                  🛒 Buy on Amazon
+                  🛒 Amazon
                 </a>
               )}
               {bnUrl && (
@@ -273,7 +278,6 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
               )}
             </div>
 
-            {/* Reading List + Share */}
             <div className="flex gap-3 mt-5">
               {user && (
                 <button
@@ -281,7 +285,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
                   className={`px-4 py-2 rounded-lg border ${
                     isInReadingList
                       ? 'bg-green-100 text-green-700 border-green-300'
-                      : 'border-gray-300 hover:bg-gray-50'
+                      : 'border-gray-600 hover:bg-slate-800'
                   }`}
                 >
                   {isInReadingList ? '✓ In Reading List' : '+ Add to Reading List'}
@@ -289,17 +293,18 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
               )}
               <button
                 onClick={handleShare}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-slate-800"
               >
                 Share
               </button>
             </div>
 
-            {/* Description */}
             {book.description && (
               <div className="mt-6">
-                <h3 className="font-semibold text-lg mb-2">About this Book</h3>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                <h3 className="font-semibold text-lg mb-2 text-yellow-400">
+                  About this Book
+                </h3>
+                <p className="text-gray-300 leading-relaxed whitespace-pre-line">
                   {book.description}
                 </p>
               </div>
@@ -307,6 +312,94 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
           </div>
         </div>
       </section>
+
+      {/* Related Books */}
+      {relatedBooks.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-xl font-semibold mb-3 text-yellow-400">
+            More by {book.authorName}
+          </h2>
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {relatedBooks.map((b) => (
+              <div
+                key={b.slug}
+                className="min-w-[140px] cursor-pointer hover:opacity-80 transition"
+                onClick={() => (window.location.href = `/books/${b.slug}`)}
+              >
+                <img
+                  src={b.coverUrl || '/no-cover.png'}
+                  alt={b.title}
+                  className="w-[140px] h-[210px] object-cover rounded-lg shadow"
+                />
+                <p className="mt-2 text-sm font-medium text-gray-300 line-clamp-2">
+                  {b.title}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Clubs */}
+      {clubsWithBook.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-xl font-semibold mb-3 text-yellow-400">
+            Clubs Reading This Book
+          </h2>
+          <ul className="space-y-2">
+            {clubsWithBook.map((club) => (
+              <li key={club.slug}>
+                <Link href={`/clubs/${club.slug}`} className="text-blue-400 hover:underline">
+                  📚 {club.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Reviews */}
+      <section className="mt-12">
+        <h2 className="text-xl font-semibold mb-4 text-yellow-400">Reader Reviews</h2>
+        {user && (
+          <div className="mb-6">
+            <AddReview slug={slug} />
+
+          </div>
+        )}
+        <ReviewsList slug={slug} />
+      </section>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl shadow-xl max-w-sm w-full text-center">
+            <h3 className="font-semibold mb-2 text-yellow-400">Share this Book</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Copy the link below to share with friends.
+            </p>
+            <input
+              readOnly
+              value={typeof window !== 'undefined' ? window.location.href : ''}
+              className="w-full border border-slate-700 bg-slate-800 px-3 py-2 rounded text-gray-200"
+            />
+            <div className="flex justify-center gap-3 mt-4">
+              <button
+                onClick={copyLink}
+                className="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 font-medium"
+              >
+                Copy Link
+              </button>
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="px-4 py-2 border border-slate-700 rounded-lg hover:bg-slate-800 text-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

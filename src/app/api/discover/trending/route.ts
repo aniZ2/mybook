@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import algoliasearch from 'algoliasearch';
 import { db } from '@/lib/firebase';
 import { collection, orderBy, limit, getDocs, query } from 'firebase/firestore';
+import { slugify } from '@/lib/slug'; // 👈 add this
 
 export const dynamic = 'force-dynamic';
 
@@ -40,9 +41,7 @@ export async function GET(req: NextRequest) {
       try {
         console.log('🧠 Querying Algolia trending replica...');
 
-        // If you have a replica index, name it something like "books_sort_search_score_desc"
         const trendingIndexName = `${ALGOLIA_INDEX_NAME}_sort_search_score_desc`;
-
         let trendingIndex;
         try {
           trendingIndex = index.client.initIndex(trendingIndexName);
@@ -55,12 +54,20 @@ export async function GET(req: NextRequest) {
 
         const trendingBooks = (algoliaRes.hits || []).map((hit: any) => ({
           id: hit.objectID,
+          slug:
+            hit.slug ||
+            slugify(
+              hit.title,
+              hit.authorName || hit.author || hit.authors?.[0] || hit.objectID
+            ),
           title: hit.title,
-          authorName: hit.authorName,
-          coverUrl: hit.coverUrl,
+          authorName: hit.authorName || hit.author || hit.authors?.[0] || 'Unknown',
+          coverUrl: hit.coverUrl || hit.cover || null,
           description: hit.description || null,
           previewLink: hit.previewLink || null,
           buyLink: hit.buyLink || null,
+          bnLink: hit.bnLink || null,
+          googleLink: hit.googleLink || null,
           genres: hit.genres || [],
           publisher: hit.publisher || null,
           publishedDate: hit.publishedDate || null,
@@ -81,10 +88,23 @@ export async function GET(req: NextRequest) {
       query(collection(db, 'books'), orderBy('createdAt', 'desc'), limit(10))
     );
 
-    const fallbackBooks = snap.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as any),
-    }));
+    const fallbackBooks = snap.docs.map((d) => {
+      const data = d.data() as any;
+      return {
+        id: d.id,
+        slug: data.slug || slugify(data.title, data.authorName || data.authors?.[0] || d.id),
+        title: data.title,
+        authorName: data.authorName || data.authors?.[0] || 'Unknown',
+        coverUrl: data.coverUrl || data.cover || null,
+        description: data.description || null,
+        buyLink: data.buyLink || null,
+        bnLink: data.bnLink || null,
+        googleLink: data.googleLink || null,
+        genres: data.genres || [],
+        publisher: data.publisher || null,
+        publishedDate: data.publishedDate || null,
+      };
+    });
 
     console.log(`✅ Firestore fallback returned ${fallbackBooks.length} books`);
 

@@ -20,6 +20,7 @@ import { slugify } from '@/lib/slug';
 import DiscoverSection from './DiscoverSection';
 import BookCard from './BookCard';
 import AuthorCard from './AuthorCard';
+import Image from 'next/image'; // ✅ uses SafeNextImage automatically
 import styles from './DiscoverPage.module.css';
 import { BookDoc, AuthorDoc, PostDoc } from '@/types/firestore';
 
@@ -66,9 +67,12 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
     (async () => {
       try {
         const trendingPromise = fetch('/api/discover/trending')
-          .then(res => res.ok ? res.json() : { books: [] })
+          .then(res => (res.ok ? res.json() : { books: [] }))
           .then(data => data.books || [])
-          .catch(err => { console.error("Trending API fetch error:", err); return []; });
+          .catch(err => {
+            console.error('Trending API fetch error:', err);
+            return [];
+          });
 
         const authorsPromise = getDocs(
           query(collection(db, 'authors'), orderBy('followersCount', 'desc'), limit(8))
@@ -83,19 +87,22 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
           forYouPromise = getDoc(doc(db, 'users', user.uid, 'preferences', 'bookPrefs'))
             .then(prefSnap => {
               const prefs = prefSnap.data();
-              if (prefs?.genres?.length) { 
+              if (prefs?.genres?.length) {
                 const qy = query(
                   collection(db, 'books'),
-                  where('genres', 'array-contains-any', prefs.genres), 
+                  where('genres', 'array-contains-any', prefs.genres),
                   limit(10)
                 );
-                return getDocs(qy).then(snap => snap.docs.map((d) => d.data() as BookDoc));
+                return getDocs(qy).then(snap => snap.docs.map(d => d.data() as BookDoc));
               } else {
                 const qyAll = query(collection(db, 'books'), orderBy('createdAt', 'desc'), limit(10));
-                return getDocs(qyAll).then(snap => snap.docs.map((d) => d.data() as BookDoc));
+                return getDocs(qyAll).then(snap => snap.docs.map(d => d.data() as BookDoc));
               }
             })
-            .catch(err => { console.warn("For You fetch failed, returning empty.", err); return []; });
+            .catch(err => {
+              console.warn('For You fetch failed, returning empty.', err);
+              return [];
+            });
         }
 
         const featuredPromise = getDocs(
@@ -108,7 +115,11 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
         ).then(snap => snap.docs.map(d => d.data() as BookDoc));
 
         const [trendingData, authorsData, postsData, forYouData, featuredData] = await Promise.all([
-          trendingPromise, authorsPromise, postsPromise, forYouPromise, featuredPromise
+          trendingPromise,
+          authorsPromise,
+          postsPromise,
+          forYouPromise,
+          featuredPromise,
         ]);
 
         setTrending(trendingData);
@@ -116,7 +127,6 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
         setPosts(postsData);
         setForYou(forYouData);
         setFeatured(featuredData);
-
       } catch (err) {
         console.error('Error loading discovery feeds:', err);
       }
@@ -139,7 +149,7 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
         limit(10)
       );
       const fsSnap = await getDocs(fsQuery);
-      const fsResults = fsSnap.docs.map((d) => d.data() as BookItem);
+      const fsResults = fsSnap.docs.map(d => d.data() as BookItem);
 
       if (fsResults.length > 0) {
         setItems(fsResults);
@@ -211,33 +221,33 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
       >
         <h1 className={styles.pageTitle}>Find Books You'll Love</h1>
         <p className={styles.pageIntro}>
-          Whether you're looking for your next page-turner or exploring new genres, 
-          Booklyverse helps you discover books that match your reading style. 
+          Whether you're looking for your next page-turner or exploring new genres,
+          Booklyverse helps you discover books that match your reading style.
           Browse trending titles, get personalized picks, and meet the authors behind the stories.
         </p>
 
-        {/* Mobile-first search bar */}
+        {/* Search bar */}
         <form onSubmit={runSearch} className={styles.searchBar}>
-          <div className={styles.searchRow}>
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by title, author, ISBN, or ASIN..."
-              className={styles.searchInput}
-            />
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Search by title, author, ISBN, or ASIN..."
+            className={styles.searchInput}
+          />
+
+          <div className={styles.searchButtonsRow}>
             <button disabled={busy} className={styles.searchButton}>
               {busy ? 'Searching...' : 'Search'}
             </button>
+            <a href="/scan" className={styles.scanLink} aria-disabled={busy ? 'true' : 'false'}>
+              Scan ISBN
+            </a>
           </div>
-
-          <a href="/scan" className={styles.scanLink}>
-            📷 Scan ISBN
-          </a>
         </form>
 
         {error && <p className={styles.error}>{error}</p>}
 
-        {/* Search results */}
+        {/* Search Results */}
         <AnimatePresence>
           {!busy &&
             items.map((b, idx) => (
@@ -249,7 +259,18 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
                 className={styles.resultCard}
                 onClick={() => viewDetails(b)}
               >
-                {b.cover && <img src={b.cover} alt={b.title} className={styles.resultCover} />}
+                {b.cover ? (
+                  <Image
+                    src={b.cover}
+                    alt={b.title}
+                    width={80}
+                    height={110}
+                    className={styles.resultCover}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className={styles.noCover}>No Cover</div>
+                )}
                 <div className={styles.resultInfo}>
                   <h3>{b.title}</h3>
                   <p>{b.authors.join(', ')}</p>
@@ -259,34 +280,49 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
         </AnimatePresence>
       </motion.section>
 
+      {/* Book Sections */}
       <DiscoverSection title="Featured Books">
-        {featured.map((b) => <BookCard key={b.slug || b.id} book={b} />)}
+        {featured.map(b => (
+          <BookCard key={b.slug || b.id} book={b} />
+        ))}
       </DiscoverSection>
 
       <DiscoverSection title="Trending Books">
-        {trending.map((b) => <BookCard key={b.slug || b.id} book={b} />)}
+        {trending.map(b => (
+          <BookCard key={b.slug || b.id} book={b} />
+        ))}
       </DiscoverSection>
 
       {user && forYou.length > 0 && (
         <DiscoverSection title="Recommended For You">
-          {forYou.map((b) => <BookCard key={b.slug || b.id} book={b} />)}
+          {forYou.map(b => (
+            <BookCard key={b.slug || b.id} book={b} />
+          ))}
         </DiscoverSection>
       )}
 
       <DiscoverSection title="Emerging Authors">
-        {authors.map((a) => <AuthorCard key={a.slug} author={a} />)}
+        {authors.map(a => (
+          <AuthorCard key={a.slug} author={a} />
+        ))}
       </DiscoverSection>
 
-      <motion.div
-        className={styles.authorCTA}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
+      {/* Author CTA */}
+      <motion.div className={styles.authorCTA} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <h2>✍️ Are you an author?</h2>
         <p>Feature your book and reach thousands of readers.</p>
-        <a href="/author/submit" className={styles.ctaButton}>
+        <button
+          onClick={() => {
+            if (user?.uid) {
+              router.push('/author/submit');
+            } else {
+              router.push('/login?redirect=/author/submit');
+            }
+          }}
+          className={styles.ctaButton}
+        >
           Submit Your Book
-        </a>
+        </button>
       </motion.div>
     </div>
   );
