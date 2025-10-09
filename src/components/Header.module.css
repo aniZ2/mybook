@@ -1,0 +1,131 @@
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* Logo */
+.logo {
+  font-family: "Merriweather", serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #facc15;
+  text-decoration: none;
+}
+
+/* Desktop nav links */
+.linksDesktop {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.linksDesktop a {
+  color: #f9fafb;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+.linksDesktop a:hover {
+  color: #38bdf8;
+}
+.signupBtn {
+  border: 1px solid #facc15;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  color: #facc15;
+  font-weight: 700;
+}
+.signupBtn:hover {
+  background: #facc15;
+  color: #111;
+}
+.signOutBtn {
+  background: transparent;
+  border: 1px solid #f9fafb;
+  color: #f9fafb;
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.signOutBtn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* Hamburger */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 28px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.bar, .barActive {
+  height: 3px;
+  width: 100%;
+  background: #facc15;
+  border-radius: 2px;
+  transition: transform 0.3s, opacity 0.3s;
+}
+.barActive:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+.barActive:nth-child(2) {
+  opacity: 0;
+}
+.barActive:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* Mobile menu */
+.mobileMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  animation: slideDown 0.3s ease forwards;
+}
+.mobileMenu a,
+.mobileMenu button {
+  color: #f9fafb;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.75rem 0;
+  width: 100%;
+  text-align: center;
+  border: none;
+  background: none;
+  transition: background 0.2s ease;
+}
+.mobileMenu a:hover,
+.mobileMenu button:hover {
+  background: rgba(56,189,248,0.15);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .linksDesktop { display: none; }
+  .hamburger { display: flex; }
+}

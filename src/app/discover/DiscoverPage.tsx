@@ -14,13 +14,13 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { db } from '@/lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { slugify } from '@/lib/slug';
 import DiscoverSection from './DiscoverSection';
 import BookCard from './BookCard';
 import AuthorCard from './AuthorCard';
-import Image from 'next/image'; // ✅ uses SafeNextImage automatically
 import styles from './DiscoverPage.module.css';
 import { BookDoc, AuthorDoc, PostDoc } from '@/types/firestore';
 
@@ -45,10 +45,6 @@ interface BookItem {
   source: 'google' | 'isbndb' | 'amazon';
 }
 
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, '').trim();
-}
-
 export default function DiscoverPage({ user }: DiscoverPageProps) {
   const router = useRouter();
   const [featured, setFeatured] = useState<BookDoc[]>([]);
@@ -64,6 +60,7 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
 
   /* ─────────────── Load Discovery Feeds ─────────────── */
   useEffect(() => {
+    console.log('🔄 Starting data fetch...');
     (async () => {
       try {
         const trendingPromise = fetch('/api/discover/trending')
@@ -127,8 +124,9 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
         setPosts(postsData);
         setForYou(forYouData);
         setFeatured(featuredData);
+        console.log('✅ Data fetch complete');
       } catch (err) {
-        console.error('Error loading discovery feeds:', err);
+        console.error('❌ Error loading discovery feeds:', err);
       }
     })();
   }, [user?.uid]);
@@ -255,7 +253,7 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
                 key={b.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
+                transition={{ duration: 0.3 }}
                 className={styles.resultCard}
                 onClick={() => viewDetails(b)}
               >

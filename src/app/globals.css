@@ -7,8 +7,13 @@
   --highlight: #fbbf24;
 }
 
-/* === Base Styles (Mobile First) === */
+/* === Base Reset === */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  width: 100%;
+}
 
 body {
   font-family: Georgia, "Times New Roman", ui-serif, system-ui;
@@ -17,12 +22,13 @@ body {
   min-height: 100vh;
   line-height: 1.6;
   padding-bottom: 4rem;
+  overflow-x: hidden;
 }
 
 /* === Typography === */
 h1, h2, h3, h4 { color: var(--fg); line-height: 1.3; }
-h1 { font-size: 1.8rem; margin-bottom: 1rem; }
-h2 { font-size: 1.4rem; margin: 0.75rem 0; }
+h1 { font-size: 1.6rem; margin-bottom: 1rem; }
+h2 { font-size: 1.25rem; margin: 0.75rem 0; }
 p { color: var(--muted); margin-bottom: 1rem; }
 
 /* === Container === */
@@ -30,7 +36,7 @@ p { color: var(--muted); margin-bottom: 1rem; }
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 1.25rem 1rem;
+  padding: 1rem;
 }
 
 /* === Nav Bar === */
@@ -39,7 +45,7 @@ p { color: var(--muted); margin-bottom: 1rem; }
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255,255,255,0.08);
   position: sticky;
@@ -54,15 +60,98 @@ p { color: var(--muted); margin-bottom: 1rem; }
   color: var(--highlight);
 }
 
-.nav a {
-  color: var(--fg);
-  text-decoration: none;
-  font-weight: 600;
-  margin-left: 1rem;
-  transition: color .2s;
+/* Mobile Menu Base */
+.navLinks {
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: absolute;
+  top: 60px;
+  right: 1rem;
+  background: rgba(15, 23, 42, 0.95);
+  border-radius: 10px;
+  padding: 1rem;
 }
 
-.nav a:hover { color: var(--accent); }
+.navLinks a {
+  color: var(--fg);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.navLinks a:hover { color: var(--accent); }
+
+.menuButton {
+  display: block;
+  background: none;
+  border: none;
+  color: var(--highlight);
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.navLinks.show { display: flex; }
+
+/* Desktop Navigation */
+@media (min-width: 768px) {
+  .menuButton { display: none; }
+  .navLinks {
+    display: flex;
+    flex-direction: row;
+    position: static;
+    background: none;
+    gap: 1.5rem;
+  }
+}
+
+/* === Buttons === */
+.btn,
+.searchButton,
+.scanButton {
+  display: inline-block;
+  border: none;
+  background: #facc15;
+  color: #111;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 12px;
+  padding: 0.9rem 1.6rem;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.25s ease, transform 0.15s ease;
+  width: 100%;
+}
+
+.btn:hover,
+.searchButton:hover,
+.scanButton:hover {
+  background: #fbbf24;
+  transform: translateY(-2px);
+}
+
+.searchButton:disabled { opacity: 0.7; cursor: not-allowed; }
+
+/* === Inputs === */
+.input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: var(--fg);
+  font-size: 1rem;
+}
+
+.input:focus {
+  border-color: var(--accent);
+  outline: none;
+  background: rgba(255,255,255,0.1);
+  box-shadow: 0 0 0 3px rgba(56,189,248,0.25);
+}
+
+.input::placeholder { color: rgba(255,255,255,0.5); }
 
 /* === Panels === */
 .panel {
@@ -75,94 +164,63 @@ p { color: var(--muted); margin-bottom: 1rem; }
   transition: transform 0.2s ease, border-color 0.3s ease;
 }
 
-.panel:hover { transform: translateY(-3px); border-color: var(--accent); }
-
-/* === Buttons === */
-.btn {
-  display: inline-block;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(255,255,255,0.08);
-  border-radius: 10px;
-  padding: 0.7rem 1rem;
-  color: var(--fg);
-  font-weight: 600;
-  text-decoration: none;
-  text-align: center;
-  transition: all 0.25s ease;
-}
-
-.btn:hover { background: rgba(255,255,255,0.18); }
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent), #0ea5e9);
-  color: #fff;
-  border: none;
-}
-.btn-primary:hover {
-  background: linear-gradient(135deg, #0284c7, var(--accent));
-  box-shadow: 0 8px 20px rgba(56,189,248,0.35);
-  transform: translateY(-2px);
-}
-
-/* === Inputs === */
-.input {
-  width: 100%;
-  padding: 0.9rem 1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(255,255,255,0.08);
-  color: var(--fg);
-  font-size: 1rem;
-  transition: border-color 0.25s, background 0.25s;
-}
-
-.input:focus {
+.panel:hover {
+  transform: translateY(-3px);
   border-color: var(--accent);
-  outline: none;
-  background: rgba(255,255,255,0.1);
-  box-shadow: 0 0 0 3px rgba(56,189,248,0.25);
 }
 
-.input::placeholder { color: rgba(255,255,255,0.5); }
+/* === Grid Layout (Books / Authors) === */
+.grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
 
-/* === Search & Scan Buttons Unified Style === */
-.searchButton,
-.scanButton {
-  background: #facc15;
-  color: #111;
-  border: none;
+/* === Cards === */
+.card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 12px;
-  font-weight: 700;
-  font-size: 1rem;
-  padding: 0.9rem 2rem;
   text-align: center;
-  cursor: pointer;
-  transition: background 0.25s ease, transform 0.15s ease;
-  display: inline-block;
-  text-decoration: none;
-  min-width: 150px;
+  padding: 1rem;
+  transition: all 0.3s ease;
 }
 
-.searchButton:hover,
-.scanButton:hover {
-  background: #fbbf24;
-  transform: translateY(-2px);
+.card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(56,189,248,0.2);
 }
 
-.searchButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+/* === Responsive Search Bar === */
+.search-bar,
+.searchButtonsRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
 }
 
-.scanButton {
-  opacity: 1; /* ensure it’s not faded */
+@media (min-width: 700px) {
+  .search-bar,
+  .searchButtonsRow {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .searchButton,
+  .scanButton {
+    width: auto;
+    min-width: 160px;
+  }
 }
 
-/* === Modal (for ScanISBN) === */
+/* === Modal === */
 .modalBackdrop {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -178,60 +236,8 @@ p { color: var(--muted); margin-bottom: 1rem; }
   color: var(--fg);
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   text-align: center;
-  position: relative;
-  animation: fadeIn 0.4s ease;
 }
-
-.closeBtn {
-  position: absolute;
-  top: 0.8rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  color: var(--fg);
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-.closeBtn:hover { color: var(--accent); }
-
-/* === Grid Layout (Books / Authors) === */
-.grid {
-  display: grid;
-  gap: 1.25rem;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-}
-
-.card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
-  text-align: center;
-  padding: 1rem;
-  transition: all 0.3s ease;
-}
-.card:hover {
-  transform: translateY(-4px);
-  border-color: var(--accent);
-  box-shadow: 0 6px 20px rgba(56,189,248,0.2);
-}
-
-/* === Links (Gold Booklyverse Style) === */
-a {
-  color: #ffd700;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.3s ease;
-}
-a:hover {
-  color: #fff8dc;
-  text-shadow: 0 0 6px rgba(255,215,0,0.8), 0 0 12px rgba(255,223,100,0.6);
-  transform: translateY(-1px);
-}
-a:active { color: #facc15; }
-a:visited { color: #e6c200; }
 
 /* === Animations === */
 @keyframes fadeIn {
@@ -239,14 +245,107 @@ a:visited { color: #e6c200; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* === Tablet & Desktop Enhancements === */
-@media (min-width: 700px) {
+/* === Tablet / Desktop Enhancements === */
+@media (min-width: 1024px) {
   h1 { font-size: 2rem; }
   h2 { font-size: 1.6rem; }
-  .nav { padding: 1rem 2rem; }
-  .search-bar { flex-direction: row; align-items: center; }
-  .search-bar .input { flex: 1; }
-  .search-bar button { width: auto; }
+  .container { padding: 2rem; }
   .panel { padding: 2rem; }
-  .modalContent { max-width: 540px; padding: 2rem; }
+}
+/* === Mobile Optimizations (under 700px) === */
+@media (max-width: 700px) {
+  /* Prevent side scroll + keep layout centered */
+  html, body {
+    overflow-x: hidden;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Navbar cleanup */
+  .nav {
+    padding: 0.5rem 1rem;
+    flex-wrap: nowrap;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .menuButton {
+    font-size: 1.5rem;
+  }
+
+  .navLinks {
+    right: 0.5rem;
+    top: 52px;
+    width: 160px;
+    text-align: right;
+  }
+
+  /* Discover hero text */
+  .pageTitle {
+    font-size: 1.3rem !important;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+
+  .pageIntro {
+    font-size: 0.9rem !important;
+    line-height: 1.5;
+    max-width: 90%;
+    margin: 0 auto 1.25rem;
+    text-align: center;
+  }
+
+  /* Search input + buttons */
+  .search-bar,
+  .searchButtonsRow {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .input {
+    font-size: 1rem;
+    padding: 0.8rem 0.9rem;
+  }
+
+  .searchButton,
+  .scanButton {
+    width: 100%;
+    padding: 0.85rem;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
+
+  /* Section spacing */
+  .container {
+    padding: 1rem 1rem 2rem;
+  }
+
+  section {
+    margin-bottom: 1.5rem;
+  }
+
+  /* Grid: 2 small cards per row */
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+  }
+
+  .card {
+    padding: 0.75rem;
+  }
+
+  /* Buttons not to stick together */
+  .searchButtonsRow {
+    gap: 0.8rem;
+  }
+
+  /* Prevent panel overlap */
+  .panel {
+    padding: 1rem;
+    margin-top: 0.75rem;
+  }
 }

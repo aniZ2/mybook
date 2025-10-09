@@ -1,12 +1,20 @@
-// src/app/layout.tsx
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/hooks/useAuth";
-import Header from "@/components/Header"; // ← ADD THIS LINE
+import Header from "@/components/Header";
 
+// ✅ Standard metadata
 export const metadata: Metadata = {
   title: "Booklyverse",
   description: "A social library for readers & authors",
+};
+
+// ✅ Move viewport here instead of inside metadata
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1.0,
+  maximumScale: 1.0,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -16,9 +24,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head /> {/* Required so Next injects <meta> tags */}
       <body>
         <AuthProvider>
-          <Header /> {/* ← ADD THIS LINE */}
+          <Header />
           <main>{children}</main>
         </AuthProvider>
       </body>

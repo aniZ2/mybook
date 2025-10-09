@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image'; // ✅ uses SafeNextImage automatically
+import Image from 'next/image';
 import styles from './DiscoverPage.module.css';
 import type { BookDoc } from '@/types/firestore';
 
@@ -17,7 +17,7 @@ interface BookCardProps {
 export default function BookCard({ book }: BookCardProps) {
   return (
     <div className={styles.bookCard}>
-      {/* Cover */}
+      {/* ─────────────── Cover ─────────────── */}
       <Link href={`/books/${book.slug}`} className={styles.coverWrapper}>
         {book.coverUrl ? (
           <Image
@@ -33,7 +33,7 @@ export default function BookCard({ book }: BookCardProps) {
         )}
       </Link>
 
-      {/* Title + Author */}
+      {/* ─────────────── Title + Author ─────────────── */}
       <div className={styles.infoBlock}>
         <h3 className={styles.bookTitle}>{book.title}</h3>
         {book.authorName && (
@@ -41,7 +41,7 @@ export default function BookCard({ book }: BookCardProps) {
         )}
       </div>
 
-      {/* Buy Links */}
+      {/* ─────────────── Buy Links ─────────────── */}
       <div className={styles.buyRow}>
         {book.buyLink && (
           <a
