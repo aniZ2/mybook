@@ -1,10 +1,11 @@
-// types/converters.ts
+/* ─────────── Imports ─────────── */
 import {
   FirestoreDataConverter,
   Timestamp,
   serverTimestamp,
   QueryDocumentSnapshot,
   SnapshotOptions,
+  WithFieldValue,
 } from 'firebase/firestore';
 
 import type {
@@ -18,11 +19,19 @@ import type {
 } from './firestore';
 
 /* ─────────── Generic Converter Factory ─────────── */
+/**
+ * Creates a reusable Firestore data converter that:
+ *  - Applies default values on read/write
+ *  - Auto-adds createdAt / updatedAt timestamps
+ *  - Automatically injects `id` from snapshot.id
+ *  - Accepts WithFieldValue<T> to support serverTimestamp() etc.
+ */
 function createConverter<T extends object>(
   defaults: Partial<T> = {}
-): FirestoreDataConverter<T> {
+): FirestoreDataConverter<T | WithFieldValue<T>> {
   return {
     toFirestore(data: T) {
+      // Allow FieldValue entries (e.g., serverTimestamp())
       return {
         ...defaults,
         ...data,
@@ -107,3 +116,6 @@ export const clubMemberConverter = createConverter<ClubMemberDoc>({
   role: 'member',
   userPhoto: null,
 });
+
+/* ─────────── Utility Export (optional) ─────────── */
+export { createConverter };

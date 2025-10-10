@@ -40,7 +40,7 @@
   width: 100%;
   padding: 0.95rem 1.25rem;
   border: 1px solid #334155;
-  border-radius: 9999px; /* pill style */
+  border-radius: 9999px;
   background: #1e293b;
   color: #f1f5f9;
   font-size: 1rem;
@@ -57,7 +57,7 @@
   box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.25);
 }
 
-/* ─────────────── Search Buttons (Fixed Alignment + Mobile Ready) ─────────────── */
+/* ─────────────── Search Buttons ─────────────── */
 .searchButtonsRow {
   display: flex;
   justify-content: center;
@@ -68,7 +68,6 @@
   margin-top: 0.75rem;
 }
 
-/* Unified Button Style */
 .searchButton,
 .scanLink {
   display: inline-block;
@@ -84,7 +83,7 @@
   text-decoration: none;
   transition: all 0.25s ease;
   box-shadow: 0 3px 10px rgba(250, 204, 21, 0.25);
-  flex: 1; /* makes both stretch evenly */
+  flex: 1;
   min-width: 140px;
   max-width: 240px;
 }
@@ -123,12 +122,14 @@
   transform: scale(0.98);
 }
 
+/* ✅ Fixed image warnings here */
 .resultCover {
-  width: 80px;
   height: 110px;
-  border-radius: 6px;
+  width: auto;
   object-fit: cover;
+  border-radius: 6px;
   flex-shrink: 0;
+  display: block;
 }
 
 /* ─────────────── Book Cards ─────────────── */
@@ -157,25 +158,29 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* ✅ Fixed image scaling here */
 .bookCover {
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
   object-fit: cover;
   display: block;
+  border-radius: 6px;
 }
 
 .noCover {
   width: 100%;
-  height: 210px;
+  aspect-ratio: 2 / 3;
   background: #334155;
   color: #94a3b8;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.85rem;
+  border-radius: 6px;
 }
 
-/* Hide info & buy rows under cover */
+/* Hide info & buy rows */
 .infoBlock,
 .buyRow {
   display: none;
@@ -225,14 +230,12 @@
   transform: translateY(-2px);
 }
 
-/* ─────────────── Mobile Fixes (≤600px) ─────────────── */
+/* ─────────────── Responsive (≤600px) ─────────────── */
 @media (max-width: 600px) {
-  /* Keep spacing consistent */
   .container {
     padding: 1rem 0.75rem;
   }
 
-  /* Title and intro scale down */
   .pageTitle {
     font-size: 1.4rem;
     line-height: 1.35;
@@ -246,7 +249,6 @@
     padding: 0 0.5rem;
   }
 
-  /* Search section */
   .searchBar {
     width: 100%;
     padding: 0 0.25rem;
@@ -260,7 +262,6 @@
     border-radius: 8px;
   }
 
-  /* Buttons stack full-width */
   .searchButtonsRow {
     flex-direction: column;
     align-items: stretch;
@@ -270,16 +271,13 @@
 
   .searchButton,
   .scanLink {
-    flex: none;
     width: 100%;
-    max-width: none;
     padding: 0.9rem 0;
     border-radius: 10px;
     font-size: 1rem;
     box-shadow: 0 2px 6px rgba(250, 204, 21, 0.3);
   }
 
-  /* Result cards and covers */
   .resultCard {
     flex-direction: row;
     align-items: center;
@@ -287,8 +285,8 @@
   }
 
   .resultCover {
-    width: 70px;
-    height: 100px;
+    height: 90px;
+    width: auto;
   }
 
   .resultInfo h3 {
@@ -299,16 +297,16 @@
     font-size: 0.8rem;
   }
 
-  /* Book grid smaller + centered */
   .bookCard {
     width: 115px;
   }
 
   .bookCover {
-    height: 170px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2 / 3;
   }
 
-  /* CTA block padding and font size */
   .authorCTA {
     margin: 2.25rem auto 1.75rem;
     padding: 1.5rem 1rem;

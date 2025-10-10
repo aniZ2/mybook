@@ -1,29 +1,37 @@
-// src/lib/firebase-admin.ts
-import * as admin from 'firebase-admin';
-import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import * as admin from "firebase-admin";
+import { getFirestore, Firestore } from "firebase-admin/firestore";
 
+let app: admin.app.App | undefined;
 let adminDb: Firestore | null = null;
 
-// Try to initialize only if the env var exists
 const serviceAccountString = process.env.SERVICE_ACCOUNT_JSON;
 
 if (!admin.apps.length) {
   if (!serviceAccountString) {
-    // 🩶 During Firebase App Hosting build, this often isn't injected yet.
-    console.warn('⚠️ Skipping Firebase Admin init — SERVICE_ACCOUNT_JSON not found (build stage).');
+    console.warn("⚠️ Skipping Firebase Admin init — SERVICE_ACCOUNT_JSON not found (build stage).");
   } else {
     try {
       const credentials = JSON.parse(serviceAccountString);
-      admin.initializeApp({
+      app = admin.initializeApp({
         credential: admin.credential.cert(credentials),
       });
       adminDb = getFirestore();
-      console.log('✅ Firebase Admin initialized successfully');
+      console.log("✅ Firebase Admin initialized successfully");
     } catch (error) {
-      console.error('❌ Failed to parse or initialize Firebase Admin SDK:', error);
+      console.error("❌ Failed to parse or initialize Firebase Admin SDK:", error);
     }
+  }
+} else {
+  app = admin.app(); // reuse existing instance
+  adminDb = getFirestore(); // Make sure to get the Firestore instance here too
+  if (process.env.NODE_ENV === "development") {
+    console.log("🧩 Firebase Admin already initialized — reusing existing app.");
   }
 }
 
-// Always export (even if null) to prevent import crashes
-export { adminDb, admin };
+// Export with proper types - always export something, never undefined
+export const dbAdmin: Firestore | null = adminDb;
+export { app, admin };
+
+// If you need a default export
+export default app;

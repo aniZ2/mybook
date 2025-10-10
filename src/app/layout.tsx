@@ -1,15 +1,13 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider } from "@/context/AuthProvider"; // ✅ FIXED PATH
 import Header from "@/components/Header";
 
-// ✅ Standard metadata
 export const metadata: Metadata = {
   title: "Booklyverse",
   description: "A social library for readers & authors",
 };
 
-// ✅ Move viewport here instead of inside metadata
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1.0,
@@ -24,7 +22,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head /> {/* Required so Next injects <meta> tags */}
+      {/* ✅ Proper head element */}
+      <head></head>
       <body>
         <AuthProvider>
           <Header />

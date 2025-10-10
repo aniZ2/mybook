@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { adminDb, admin } from "@/lib/firebase-admin";
+import { dbAdmin as adminDb } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore"; // ✅ Import directly
 import algoliasearch from "algoliasearch";
 
 // ─────────── ALGOLIA CLIENT (Server-side Admin Key) ───────────
@@ -120,7 +121,7 @@ async function safeAddSearchEvent(q: string) {
     if (!adminDb) return;
     await adminDb.collection("search_events").add({
       query: q,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(), // ✅ Use direct import
     });
   } catch (e) {
     console.warn("Failed to log search event:", e);

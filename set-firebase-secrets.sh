@@ -1,24 +1,25 @@
 #!/bin/bash
 set -e
 
-# Ensure .env.local exists
 if [ ! -f .env.local ]; then
-  echo "❌ .env.local not found in project root"
+  echo "❌ .env.local not found"
   exit 1
 fi
 
-# Read .env.local line by line
+echo "⚙️ Setting Firebase App Hosting secrets from .env.local"
+
 while IFS='=' read -r key value; do
-  # Skip comments and empty lines
   if [[ -z "$key" || "$key" == \#* ]]; then
     continue
   fi
 
-  # Remove surrounding quotes if any
-  value=$(echo "$value" | sed 's/^"\(.*\)"$/\1/' | sed "s/^'\(.*\)'$/\1/")
+  # Remove quotes and whitespace
+  value=$(echo "$value" | sed 's/^"\(.*\)"$/\1/' | sed "s/^'\(.*\)'$/\1/" | xargs)
 
-  echo "🔑 Setting $key"
-  firebase apphosting:secrets:set "$key"="$value"
+  echo "🔑 Setting $key ..."
+  # Use --data-file with process substitution to avoid interactive prompt
+  echo -n "$value" | firebase functions:secrets:set "$key" --data-file=- --force
+
 done < .env.local
 
-echo "✅ All Firebase secrets set from .env.local!"
+echo "✅ All App Hosting secrets set successfully!"

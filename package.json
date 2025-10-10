@@ -2,11 +2,14 @@
   "name": "booklyverse",
   "version": "0.1.0",
   "private": true,
+  "description": "Booklyverse — A social library connecting readers and authors",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint ."
+    "dev": "next dev --port 3000",
+    "build": "NODE_ENV=production next build",
+    "start": "next start -p 3000",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "analyze": "ANALYZE=true next build",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.17.0",
@@ -27,14 +30,22 @@
     "stripe": "^19.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^20.14.11",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.5",
-    "typescript": "^5"
+    "typescript": "^5.6.3"
   },
   "engines": {
     "node": "20"
-  }
+  },
+  "eslintConfig": {
+    "extends": ["next/core-web-vitals"]
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not op_mini all"
+  ]
 }

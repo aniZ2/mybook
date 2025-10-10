@@ -36,3 +36,7 @@ env:
     secret: NEXT_PUBLIC_FIREBASE_APP_ID
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     secret: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  - variable: SERVICE_ACCOUNT_JSON
+    secret: SERVICE_ACCOUNT_JSON
+    availability:
+      - RUNTIME

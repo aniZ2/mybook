@@ -1,247 +1,185 @@
-import { doc, getDoc, collection, query, getDocs, limit } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import {
-  clubConverter,
-  bookConverter,
-  clubMemberConverter,
-  type ClubDoc,
-  type BookDoc,
-  type ClubMemberDoc,
-} from "@/types/firestore";
-import { notFound } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
-import type { Metadata } from "next";
-import ClubChat from "@/components/ClubChat";
+'use client';
 
-interface PageProps {
-  params: { slug: string };
-}
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import ClubChat from '@/components/ClubChat';
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const ref = doc(db, "clubs", params.slug).withConverter(clubConverter);
-  const snap = await getDoc(ref);
+export default function ClubPage({ params }: { params: { slug: string } }) {
+  const { slug } = params; // ✅ no use(), no Promise unwrap
 
-  if (!snap.exists()) {
-    return { title: "Club Not Found" };
+  
+  const [clubData, setClubData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        console.log('🔍 Fetching club:', slug); // Debug log
+        const res = await fetch(`/api/clubs/${slug}`);
+        console.log('📡 Response status:', res.status); // Debug log
+        
+        if (!res.ok) {
+          console.error('❌ API returned error:', res.status);
+          setClubData(null);
+          return;
+        }
+        
+        const data = await res.json();
+        console.log('✅ Club data received:', data); // Debug log
+        setClubData(data);
+      } catch (err) {
+        console.error('Failed to fetch club:', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [slug]);
+
+  // 🧱 1️⃣ Loading state
+  if (loading) {
+    return (
+      <main style={{ textAlign: 'center', padding: '4rem' }}>
+        <h2>Loading club details...</h2>
+      </main>
+    );
   }
 
-  const club = snap.data();
+  // 🧱 2️⃣ Fallback if not found or invalid response
+  if (!clubData?.club) {
+    return (
+      <main style={{ textAlign: 'center', padding: '4rem' }}>
+        <h1>Club Not Found</h1>
+        <p style={{ color: '#9ca3af' }}>Try again later.</p>
+        <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+          Check the browser console for error details.
+        </p>
+      </main>
+    );
+  }
 
-  return {
-    title: club.name,
-    description: club.description || "A Booklyverse reading club",
-    openGraph: {
-      title: club.name,
-      description: club.description || "",
-      images: club.coverUrl ? [club.coverUrl] : undefined,
-    },
-  };
-}
-
-async function getClubData(slug: string) {
-  const clubRef = doc(db, "clubs", slug).withConverter(clubConverter);
-  const clubSnap = await getDoc(clubRef);
-
-  if (!clubSnap.exists()) return null;
-
-  const club = clubSnap.data();
-
-  const booksRef = collection(db, "clubs", slug, "books").withConverter(bookConverter);
-  const booksSnap = await getDocs(query(booksRef, limit(12)));
-  const books = booksSnap.docs.map((d) => d.data());
-
-  const membersRef = collection(db, "clubs", slug, "members").withConverter(clubMemberConverter);
-  const membersSnap = await getDocs(query(membersRef, limit(12)));
-  const members = membersSnap.docs.map((d) => d.data());
-
-  return { club, books, members };
-}
-
-export default async function ClubPage({ params }: PageProps) {
-  const data = await getClubData(params.slug);
-  if (!data) notFound();
-
-  const { club, books, members } = data;
+  const { club, books = [], members = [] } = clubData;
 
   return (
-    <main>
-      {/* Small Banner */}
-      <div style={{ 
-        position: 'relative', 
-        height: '120px', 
-        background: 'linear-gradient(135deg, #667eea, #764ba2)',
-        marginBottom: '3rem'
-      }}>
-        {club.coverUrl && (
+    <main style={{ overflowX: 'hidden' }}>
+      {/* Header */}
+      <header
+        style={{
+          padding: '2rem',
+          marginBottom: '2rem',
+          borderRadius: '12px',
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(6px)',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <Image
-            src={club.coverUrl}
-            alt=""
-            fill
-            style={{ objectFit: 'cover' }}
-            priority
+            src={club.iconUrl || '/placeholder.png'}
+            alt={club.name}
+            width={80}
+            height={80}
+            style={{ borderRadius: '50%', objectFit: 'cover' }}
           />
-        )}
-      </div>
-
-      <div className="container">
-        {/* Club Header */}
-        <header className="panel" style={{ padding: '2rem', marginTop: '-5rem', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            {club.iconUrl ? (
-              <Image
-                src={club.iconUrl}
-                alt={club.name}
-                width={80}
-                height={80}
-                style={{ borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--bg)' }}
-              />
-            ) : (
-              <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '2rem',
-                fontWeight: 'bold',
-                border: '4px solid var(--bg)'
-              }}>
-                {club.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-
-            <div style={{ flex: 1 }}>
-              <h1 className="h1" style={{ marginBottom: '0.5rem' }}>{club.name}</h1>
-              <p className="muted">{club.description}</p>
-              <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', marginTop: '0.75rem' }}>
-                <span><strong>{club.membersCount}</strong> members</span>
-                <span><strong>{club.booksCount}</strong> books</span>
-              </div>
+          <div>
+            <h1>{club.name}</h1>
+            <p style={{ color: '#9ca3af' }}>{club.description}</p>
+            <div style={{ marginTop: '0.5rem' }}>
+              👥 {club.membersCount || members.length} members — 📚{' '}
+              {club.booksCount || books.length} books
             </div>
-
-            <button className="btn btn-primary">Join Club</button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Books Section */}
-        <section style={{ marginBottom: '3rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2 className="h2">Books</h2>
-            {books.length > 0 && <Link href={`/clubs/${club.slug}/books`}>View all →</Link>}
-          </div>
-
-          {books.length === 0 ? (
-            <div className="panel" style={{ padding: '3rem', textAlign: 'center' }}>
-              <p className="muted">No books yet</p>
-            </div>
-          ) : (
-            <div style={{ 
-              display: 'grid', 
+      {/* Books */}
+      <section style={{ padding: '1rem', marginBottom: '3rem' }}>
+        <h2>Books</h2>
+        {books.length === 0 ? (
+          <p style={{ color: '#9ca3af' }}>No books yet</p>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-              gap: '1.5rem' 
-            }}>
-              {books.map((book) => (
-                <Link key={book.id} href={`/books/${book.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div style={{ 
-                    position: 'relative', 
-                    aspectRatio: '2/3',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    marginBottom: '0.5rem',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                  }}>
-                    {book.coverUrl ? (
-                      <Image
-                        src={book.coverUrl}
-                        alt={book.title}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: '100%',
-                        height: '100%',
-                        background: '#e0e0e0',
+              gap: '1rem',
+            }}
+          >
+            {books.map((book: any) => (
+              <Link key={book.slug} href={`/books/${book.slug}`}>
+                <div>
+                  {book.coverUrl ? (
+                    <Image
+                      src={book.coverUrl}
+                      alt={book.title}
+                      width={120}
+                      height={180}
+                      style={{ borderRadius: '6px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '120px',
+                        height: '180px',
+                        background: '#1f2937',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        padding: '1rem'
-                      }}>
-                        <p style={{ fontSize: '0.8rem', textAlign: 'center' }}>{book.title}</p>
-                      </div>
-                    )}
-                  </div>
-                  <h3 style={{ fontSize: '0.85rem', lineHeight: '1.3' }}>{book.title}</h3>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Members Section */}
-        <section style={{ marginBottom: '3rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2 className="h2">Members</h2>
-            {members.length > 0 && <Link href={`/clubs/${club.slug}/members`}>View all →</Link>}
-          </div>
-
-          {members.length === 0 ? (
-            <div className="panel" style={{ padding: '3rem', textAlign: 'center' }}>
-              <p className="muted">No members yet</p>
-            </div>
-          ) : (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-              gap: '1rem' 
-            }}>
-              {members.map((member) => (
-                <div key={member.userId} className="panel" style={{ padding: '1rem', textAlign: 'center' }}>
-                  {member.userPhoto ? (
-                    <Image
-                      src={member.userPhoto}
-                      alt={member.userName}
-                      width={60}
-                      height={60}
-                      style={{ borderRadius: '50%', margin: '0 auto', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <div style={{
-                      width: '60px',
-                      height: '60px',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      fontSize: '1.25rem',
-                      margin: '0 auto'
-                    }}>
-                      {member.userName.charAt(0).toUpperCase()}
+                        color: '#94a3b8',
+                      }}
+                    >
+                      {book.title}
                     </div>
                   )}
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: '500' }}>{member.userName}</p>
-                  {member.role !== "member" && (
-                    <p className="muted" style={{ fontSize: '0.7rem', textTransform: 'capitalize' }}>{member.role}</p>
-                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+                <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>{book.title}</p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
-        {/* Chat Section */}
-        <section>
-          <h2 className="h2" style={{ marginBottom: '1rem' }}>Chat</h2>
-          <ClubChat slug={club.slug} />
-        </section>
-      </div>
+      {/* Members */}
+      <section style={{ padding: '1rem', marginBottom: '3rem' }}>
+        <h2>Members</h2>
+        {members.length === 0 ? (
+          <p style={{ color: '#9ca3af' }}>No members yet</p>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+              gap: '1rem',
+            }}
+          >
+            {members.map((m: any) => (
+              <div
+                key={m.userId}
+                style={{
+                  textAlign: 'center',
+                  background: 'rgba(255,255,255,0.05)',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                }}
+              >
+                <Image
+                  src={m.userPhoto || '/avatar.png'}
+                  alt={m.userName}
+                  width={60}
+                  height={60}
+                  style={{ borderRadius: '50%' }}
+                />
+                <p style={{ marginTop: '0.5rem', fontWeight: 500 }}>{m.userName}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Chat */}
+      <section style={{ padding: '1rem 1rem 4rem' }}>
+        <h2>Chat</h2>
+        <ClubChat slug={club.slug} />
+      </section>
     </main>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import styles from "./ClubLayout.module.css";
+import styles from "../ClubsPage.module.css";
 
 export default function ClubLayout({
   children,
