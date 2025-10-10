@@ -1,227 +1,110 @@
-/* === ClubsPage.module.css === */
-
-/* ─────────────── Global Page Styles ─────────────── */
 .page {
-  min-height: 100vh;
-  background: var(--bg-gradient, linear-gradient(to bottom right, #0f172a, #1e293b));
-  color: var(--fg, #f9fafb);
   padding: 2rem 1rem;
-  box-sizing: border-box;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
-/* ─────────────── Header Section ─────────────── */
-.header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
+.hero {
+  text-align: center;
   margin-bottom: 2rem;
-}
-
-.headerText {
-  flex: 1;
-  min-width: 240px;
+  padding: 3rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
 }
 
 .title {
   font-size: 2rem;
-  font-weight: 700;
-  color: var(--accent, #fbbf24);
-  margin-bottom: 0.5rem;
+  font-weight: 800;
+  color: var(--highlight, #fbbf24);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sparkleIcon {
+  color: var(--accent, #38bdf8);
 }
 
 .subtitle {
-  color: var(--muted, #94a3b8);
-  font-size: 0.95rem;
-  line-height: 1.5;
+  color: #cbd5e1;
+  font-size: 1.05rem;
+  max-width: 700px;
+  margin: 0.75rem auto 2rem;
+  line-height: 1.6;
 }
 
-/* ─────────────── Create Club Button ─────────────── */
 .createBtn {
-  background: var(--accent, #fbbf24);
-  color: #111827;
-  border: none;
-  padding: 0.75rem 1.25rem;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
+  background: var(--highlight, #fbbf24);
+  color: #111;
+  padding: 0.8rem 1.6rem;
+  border-radius: 12px;
+  font-weight: 700;
   text-decoration: none;
-  transition: background 0.25s ease;
+  transition: all 0.25s ease;
 }
 
 .createBtn:hover {
-  background: #fde047;
+  background: #facc15;
+  transform: translateY(-2px);
 }
 
-/* ─────────────── Filters Bar ─────────────── */
-.filtersBar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+/* Grid Section */
+.gridSection {
+  margin-top: 2rem;
 }
 
-.searchInput {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #f1f5f9;
-  padding: 0.55rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  min-width: 220px;
-  transition: 0.2s border-color ease;
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: var(--accent, #fbbf24);
-  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25);
-}
-
-.sortSelect {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #f1f5f9;
-  padding: 0.55rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  min-width: 140px;
-  transition: 0.2s border-color ease;
-}
-
-.sortSelect:focus {
-  outline: none;
-  border-color: var(--accent, #fbbf24);
-  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25);
-}
-
-/* ─────────────── Category Chips ─────────────── */
-.categories {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-}
-
-.categoryChip {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f8fafc;
-  font-size: 0.8rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: 20px;
-  cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.2s ease;
-}
-
-.categoryChip:hover,
-.categoryChipActive {
-  background: var(--accent, #fbbf24);
-  color: #111827;
-  border-color: var(--accent, #fbbf24);
-}
-
-/* ─────────────── Club Layout (Overview/Books/Members/Chat) ─────────────── */
-.container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background: var(--bg-gradient, linear-gradient(to bottom right, #0f172a, #1e293b));
-  padding: 1rem;
-  box-sizing: border-box;
-}
-
-.nav {
-  display: flex;
-  flex-wrap: wrap;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1.5rem;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.link {
-  color: #facc15; /* yellow-500 */
-  font-weight: 500;
+.clubCard {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 1.25rem;
   text-decoration: none;
-  transition: color 0.2s ease, text-decoration 0.2s ease;
+  color: inherit;
+  transition: all 0.25s ease;
 }
 
-.link:hover,
-.link:focus {
-  color: #fde047; /* yellow-400 */
-  text-decoration: underline;
+.clubCard:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent, #38bdf8);
 }
 
-.content {
-  flex: 1;
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
-  padding: 1rem 0;
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-/* Fix full-width image issue */
-.bannerWrapper {
-  position: relative;
-  width: 100%;
-  height: 160px;
-  overflow: hidden;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-}
-
-.bannerWrapper img {
+.clubIcon {
+  border-radius: 50%;
   object-fit: cover;
 }
 
-/* Make all links inside club pages yellow */
-.content a {
-  color: #facc15;
-  text-decoration: none;
-  transition: color 0.2s ease;
+.clubName {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--highlight, #fbbf24);
 }
 
-.content a:hover {
-  color: #fde047;
-  text-decoration: underline;
+.clubDescription {
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  margin-top: 0.3rem;
+  line-height: 1.4;
 }
 
-/* ─────────────── Responsive Layout ─────────────── */
-@media (max-width: 640px) {
-  .header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .createBtn {
-    width: 100%;
-    text-align: center;
-  }
-
-  .filtersBar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .searchInput,
-  .sortSelect {
-    width: 100%;
-  }
-
-  .clubsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .nav {
-    gap: 1rem;
-  }
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin-top: auto;
 }

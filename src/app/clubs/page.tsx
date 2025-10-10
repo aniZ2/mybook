@@ -1,35 +1,104 @@
-import { Suspense } from "react";
-import ClubsGrid from "@/components/ClubsGrid";
-import ClubsLoading from "./loading";
-import Link from "next/link";
-import styles from "./ClubsPage.module.css";
+'use client';
 
-export const metadata = {
-  title: "Book Clubs",
-  description: "Join book clubs and connect with readers who share your interests",
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import styles from './ClubsPage.module.css';
+import { Users, BookOpen, Sparkles } from 'lucide-react';
+
+type Club = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  iconUrl?: string;
+  membersCount?: number;
+  booksCount?: number;
+  category?: string;
 };
 
 export default function ClubsPage() {
+  const [clubs, setClubs] = useState<Club[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/clubs');
+        const data = await res.json();
+        setClubs(data.clubs || []);
+      } catch (err) {
+        console.error('Error loading clubs:', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className={styles.page}>
+        <h2 style={{ textAlign: 'center', color: '#9ca3af' }}>Loading clubs...</h2>
+      </main>
+    );
+  }
+
   return (
     <main className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.headerText}>
-          <h1 className={styles.title}>Book Clubs</h1>
+      {/* ─── Hero Header ─── */}
+      <section className={styles.hero}>
+        <div className={styles.heroContent}>
+          <h1 className={styles.title}>
+            Join Book Clubs <Sparkles className={styles.sparkleIcon} />
+          </h1>
           <p className={styles.subtitle}>
-            Join communities of readers and discover your next great read together.
+            Discover passionate communities reading the same books, debating tropes, and celebrating stories together.
           </p>
+          <Link href="/clubs/create" className={styles.createBtn}>
+            + Create a Club
+          </Link>
         </div>
+      </section>
 
-        <Link href="/clubs/create" className={styles.createBtn}>
-          Create Club
-        </Link>
-      </div>
+      {/* ─── Clubs Grid ─── */}
+      <section className={styles.gridSection}>
+        {clubs.length === 0 ? (
+          <p style={{ color: '#94a3b8', textAlign: 'center' }}>
+            No clubs found. <Link href="/clubs/create">Start one today!</Link>
+          </p>
+        ) : (
+          <div className={styles.grid}>
+            {clubs.map((club) => (
+              <Link
+                key={club.id}
+                href={`/clubs/${club.slug}`}
+                className={styles.clubCard}
+              >
+                <div className={styles.cardHeader}>
+                  <Image
+                    src={club.iconUrl || '/placeholder.png'}
+                    alt={club.name}
+                    width={60}
+                    height={60}
+                    className={styles.clubIcon}
+                  />
+                  <div>
+                    <h3 className={styles.clubName}>{club.name}</h3>
+                    <p className={styles.clubDescription}>
+                      {club.description?.slice(0, 90) || 'A community of readers and dreamers.'}
+                    </p>
+                  </div>
+                </div>
 
-      <div className={styles.content}>
-        <Suspense fallback={<ClubsLoading />}>
-          <ClubsGrid />
-        </Suspense>
-      </div>
+                <div className={styles.cardFooter}>
+                  <span><Users size={15} /> {club.membersCount ?? 0} members</span>
+                  <span><BookOpen size={15} /> {club.booksCount ?? 0} books</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }

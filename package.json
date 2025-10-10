@@ -23,6 +23,7 @@
     "firebase": "^12.3.0",
     "firebase-admin": "^13.5.0",
     "framer-motion": "^12.23.22",
+    "lucide-react": "^0.545.0",
     "next": "^14.2.33",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -41,7 +42,9 @@
     "node": "20"
   },
   "eslintConfig": {
-    "extends": ["next/core-web-vitals"]
+    "extends": [
+      "next/core-web-vitals"
+    ]
   },
   "browserslist": [
     ">0.2%",
