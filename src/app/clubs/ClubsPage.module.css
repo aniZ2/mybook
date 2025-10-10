@@ -1,56 +1,115 @@
+/* ───────────────────────────────────────────
+   📚 Literary Lounge - Sophisticated Book Club
+─────────────────────────────────────────── */
+
 .page {
   padding: 2rem 1rem;
   max-width: 1100px;
   margin: 0 auto;
 }
 
+/* ───────── Hero Section - Frosted Glass ───────── */
 .hero {
+  position: relative;
   text-align: center;
   margin-bottom: 2rem;
   padding: 3rem 1rem;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+/* Ambient Background Orbs */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -150px;
+  left: -150px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.3), transparent);
+  filter: blur(80px);
+  animation: float 20s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -150px;
+  right: -100px;
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.25), transparent);
+  filter: blur(80px);
+  animation: float 25s ease-in-out infinite reverse;
+  pointer-events: none;
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translate(0, 0) scale(1); 
+  }
+  33% { 
+    transform: translate(30px, -30px) scale(1.1); 
+  }
+  66% { 
+    transform: translate(-20px, 20px) scale(0.9); 
+  }
 }
 
 .title {
-  font-size: 2rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2.5rem;
   font-weight: 800;
-  color: var(--highlight, #fbbf24);
+  color: #fda4af;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  position: relative;
+  z-index: 1;
+  letter-spacing: -0.5px;
 }
 
 .sparkleIcon {
-  color: var(--accent, #38bdf8);
+  color: #f472b6;
 }
 
 .subtitle {
-  color: #cbd5e1;
+  color: rgba(255, 255, 255, 0.75);
   font-size: 1.05rem;
   max-width: 700px;
   margin: 0.75rem auto 2rem;
   line-height: 1.6;
+  font-style: italic;
+  position: relative;
+  z-index: 1;
 }
 
 .createBtn {
-  background: var(--highlight, #fbbf24);
-  color: #111;
-  padding: 0.8rem 1.6rem;
+  background: linear-gradient(135deg, #ec4899, #f472b6);
+  color: #fff;
+  padding: 0.9rem 2rem;
   border-radius: 12px;
   font-weight: 700;
   text-decoration: none;
-  transition: all 0.25s ease;
+  transition: all 0.3s ease;
+  display: inline-block;
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
+  position: relative;
+  z-index: 1;
 }
 
 .createBtn:hover {
-  background: #facc15;
-  transform: translateY(-2px);
+  background: linear-gradient(135deg, #db2777, #ec4899);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(236, 72, 153, 0.5);
 }
 
-/* Grid Section */
+/* ───────── Grid Section ───────── */
 .gridSection {
   margin-top: 2rem;
 }
@@ -61,19 +120,42 @@
   gap: 1.5rem;
 }
 
+/* ───────── Club Cards - Elegant Frosted Glass ───────── */
 .clubCard {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
-  padding: 1.25rem;
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
   text-decoration: none;
   color: inherit;
-  transition: all 0.25s ease;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.clubCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ec4899, #f472b6, #fb7185);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .clubCard:hover {
-  transform: translateY(-4px);
-  border-color: var(--accent, #38bdf8);
+  transform: translateY(-6px);
+  border-color: rgba(236, 72, 153, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px rgba(236, 72, 153, 0.2);
+}
+
+.clubCard:hover::before {
+  opacity: 1;
 }
 
 .cardHeader {
@@ -84,27 +166,204 @@
 }
 
 .clubIcon {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid rgba(236, 72, 153, 0.3);
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.2);
 }
 
 .clubName {
-  font-size: 1.2rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.3rem;
   font-weight: 700;
-  color: var(--highlight, #fbbf24);
+  color: #fda4af;
+  letter-spacing: -0.3px;
 }
 
 .clubDescription {
   font-size: 0.9rem;
-  color: #cbd5e1;
-  margin-top: 0.3rem;
-  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 0.5rem;
+  line-height: 1.5;
 }
 
 .cardFooter {
   display: flex;
   justify-content: space-between;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.85rem;
-  margin-top: auto;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ───────────────────────────────
+   🌟 Literary Lounge Club Layout
+─────────────────────────────── */
+.redditLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 2rem;
+  padding: 0;
+  background: radial-gradient(circle at top left, #1a1a2e 0%, #2d1b3d 50%, #1a1a2e 100%);
+  min-height: 100vh;
+  color: #f1f5f9;
+}
+
+/* ───────── Header Container - Frosted Glass ───────── */
+.headerContainer {
+  grid-column: 1 / -1;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(26, 26, 46, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ───────── Feed Area ───────── */
+.feedArea {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 2rem;
+}
+
+.emptyFeed {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(236, 72, 153, 0.3);
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.emptyFeed h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #fda4af;
+  font-weight: 700;
+}
+
+.emptyFeed p {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+
+.newPostButton {
+  background: linear-gradient(135deg, #ec4899, #f472b6);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
+}
+
+.newPostButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(236, 72, 153, 0.5);
+  background: linear-gradient(135deg, #db2777, #ec4899);
+}
+
+/* ───────── Sidebar Area - Elegant Cards ───────── */
+.sidebarArea {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: fit-content;
+  padding: 2rem 2rem 2rem 0;
+}
+
+.featuredBookCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(236, 72, 153, 0.15);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.featuredBookCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(236, 72, 153, 0.25);
+}
+
+.featuredBookCard h3 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  color: #fda4af;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.featuredBookCover {
+  width: 140px;
+  height: 210px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 0 auto 1rem;
+  display: block;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(236, 72, 153, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.featuredBookCover:hover {
+  transform: scale(1.05);
+}
+
+.featuredBookTitle {
+  font-weight: 600;
+  color: #f9fafb;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.featuredBookAuthor {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ───────── Responsive ───────── */
+@media (max-width: 1024px) {
+  .redditLayout {
+    grid-template-columns: 1fr;
+    padding: 0;
+  }
+
+  .feedArea {
+    padding: 1.5rem;
+  }
+
+  .sidebarArea {
+    order: -1;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 2rem;
+  }
+
+  .hero {
+    padding: 2rem 1rem;
+  }
+
+  .feedArea,
+  .sidebarArea {
+    padding: 1rem;
+  }
 }

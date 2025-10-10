@@ -49,7 +49,7 @@ export default function ClubsPage() {
       <section className={styles.hero}>
         <div className={styles.heroContent}>
           <h1 className={styles.title}>
-            Join Book Clubs <Sparkles className={styles.sparkleIcon} />
+            Join A Book Club <Sparkles className={styles.sparkleIcon} />
           </h1>
           <p className={styles.subtitle}>
             Discover passionate communities reading the same books, debating tropes, and celebrating stories together.

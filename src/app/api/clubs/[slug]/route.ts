@@ -52,20 +52,33 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
     const clubData = clubSnap.data();
     console.log("✅ CLUB DATA:", clubData ? Object.keys(clubData) : "No data");
 
-    const [booksSnap, membersSnap] = await Promise.all([
+    // Fetch all collections in parallel
+    const [booksSnap, membersSnap, postsSnap, eventsSnap, announcementsSnap] = await Promise.all([
       clubRef.collection("books").limit(12).get(),
       clubRef.collection("members").limit(12).get(),
+      clubRef.collection("posts").orderBy("createdAt", "desc").limit(20).get(),
+      clubRef.collection("events").where("date", ">=", new Date().toISOString()).orderBy("date", "asc").limit(5).get(),
+      clubRef.collection("announcements").orderBy("date", "desc").limit(5).get(),
     ]);
 
-    console.log("📚 books:", booksSnap.size, "👥 members:", membersSnap.size);
+    console.log(
+      "📚 books:", booksSnap.size,
+      "👥 members:", membersSnap.size,
+      "📰 posts:", postsSnap.size,
+      "📅 events:", eventsSnap.size,
+      "📢 announcements:", announcementsSnap.size
+    );
 
     // ✅ APPLY SERIALIZATION HERE
     return NextResponse.json(
       {
         success: true,
         club: serialize(clubData),
-        books: booksSnap.docs.map((d) => serialize(d.data())),
-        members: membersSnap.docs.map((d) => serialize(d.data())),
+        books: booksSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
+        members: membersSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
+        posts: postsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
+        events: eventsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
+        announcements: announcementsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
       },
       { status: 200 }
     );
