@@ -10,7 +10,7 @@
 .pageTitle {
   font-size: 1.8rem;
   font-weight: 700;
-  color: var(--accent-color, hsl(204, 76.40%, 48.20%));
+  color: var(--accent-color, hsl(204, 76.4%, 48.2%));
   margin-bottom: 0.75rem;
   text-align: center;
   line-height: 1.3;
@@ -71,7 +71,7 @@
 .searchButton,
 .scanLink {
   display: inline-block;
-  background: linear-gradient(180deg, hsl(204, 76.40%, 48.20%), hsl(204, 76.40%, 48.20%));
+  background: linear-gradient(180deg, hsl(204, 76.4%, 48.2%), hsl(204, 76.4%, 48.2%));
   color: #111 !important;
   border: none;
   border-radius: 9999px;
@@ -90,7 +90,6 @@
 
 .searchButton:hover,
 .scanLink:hover {
-  background: linear-gradient(180deg, hsl(204, 76.40%, 48.20%), hsl(204, 76.40%, 48.20%));
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(46, 73, 83, 0.35);
 }
@@ -116,20 +115,53 @@
   color: #f1f5f9;
   margin-bottom: 0.75rem;
   transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.resultCard:hover {
+  background: #243447;
+  border-color: #475569;
 }
 
 .resultCard:active {
   transform: scale(0.98);
 }
 
-/* ✅ Fixed image warnings here */
-.resultCover {
-  height: 110px;
-  width: auto;
-  object-fit: cover;
-  border-radius: 6px;
+.resultCoverWrapper {
+  width: 80px;
+  height: 120px;
   flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.resultCover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
+}
+
+.resultInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.resultInfo h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.resultInfo p {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin: 0;
 }
 
 /* ─────────────── Book Cards ─────────────── */
@@ -151,26 +183,24 @@
 }
 
 .coverWrapper {
-  display: block;
+  position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: block;
 }
 
-/* ✅ Fixed image scaling here */
 .bookCover {
   width: 100%;
-  height: auto;
-  aspect-ratio: 2 / 3;
+  height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: 6px;
 }
 
 .noCover {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  height: 100%;
   background: #334155;
   color: #94a3b8;
   display: flex;
@@ -184,6 +214,13 @@
 .infoBlock,
 .buyRow {
   display: none;
+}
+
+.error {
+  color: #f87171;
+  text-align: center;
+  margin: 1rem 0;
+  font-size: 0.9rem;
 }
 
 /* ─────────────── Author CTA ─────────────── */
@@ -212,7 +249,7 @@
 }
 
 .ctaButton {
-  background: var(--accent-color, hsl(204, 76.40%, 48.20%));
+  background: var(--accent-color, hsl(204, 76.4%, 48.2%));
   color: #111;
   border: none;
   padding: 0.75rem 1.75rem;
@@ -226,7 +263,7 @@
 }
 
 .ctaButton:hover {
-  background: hsl(204, 76.40%, 48.20%);
+  background: hsl(204, 76.4%, 48.2%);
   transform: translateY(-2px);
 }
 
@@ -284,9 +321,9 @@
     padding: 0.75rem;
   }
 
-  .resultCover {
-    height: 90px;
-    width: auto;
+  .resultCoverWrapper {
+    width: 70px;
+    height: 105px;
   }
 
   .resultInfo h3 {
@@ -301,10 +338,14 @@
     width: 115px;
   }
 
-  .bookCover {
-    width: 100%;
-    height: auto;
+  .coverWrapper {
     aspect-ratio: 2 / 3;
+  }
+
+  .bookCover {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
   }
 
   .authorCTA {

@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import styles from './DiscoverPage.module.css';
 import type { BookDoc } from '@/types/firestore';
 
@@ -20,11 +19,9 @@ export default function BookCard({ book }: BookCardProps) {
       {/* ─────────────── Cover ─────────────── */}
       <Link href={`/books/${book.slug}`} className={styles.coverWrapper}>
         {book.coverUrl ? (
-          <Image
+          <img
             src={book.coverUrl}
             alt={book.title}
-            width={140}
-            height={210}
             className={styles.bookCover}
             loading="lazy"
           />
@@ -53,6 +50,7 @@ export default function BookCard({ book }: BookCardProps) {
             Amazon
           </a>
         )}
+
         {book.bnLink && (
           <a
             href={book.bnLink}
@@ -63,6 +61,7 @@ export default function BookCard({ book }: BookCardProps) {
             B&N
           </a>
         )}
+
         {book.googleLink && (
           <a
             href={book.googleLink}

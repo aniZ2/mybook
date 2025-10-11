@@ -133,6 +133,7 @@ export interface ClubDoc {
   ownerUid: string;
   creatorName: string;
   membersCount: number;
+  memberIds?: string[];
   booksCount: number;
   category:
     | 'fiction'

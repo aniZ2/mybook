@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getDbOrThrow, getStorageOrThrow } from '@/lib/firebase';
-import { useAuth } from '@/context/AuthProvider'; // ✅ use global auth context
+import { useAuth } from '@/context/AuthProvider';
 import type { ClubDoc } from '@/types/firestore';
 
 const CATEGORIES: ClubDoc['category'][] = [
@@ -33,7 +33,7 @@ const CATEGORY_LABELS: Record<ClubDoc['category'], string> = {
 
 export default function CreateClubForm() {
   const router = useRouter();
-  const { user, loading } = useAuth(); // ✅ replaced useAuthState(auth)
+  const { user, loading } = useAuth();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -76,11 +76,23 @@ export default function CreateClubForm() {
     name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
   const uploadImage = async (file: File, path: string): Promise<string> => {
-  const storage = getStorageOrThrow(); // ✅ ensures non-null instance
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return await getDownloadURL(storageRef);
-};
+    try {
+      const storage = getStorageOrThrow();
+      const storageRef = ref(storage, path);
+      
+      console.log('📤 Uploading to:', path);
+      const snapshot = await uploadBytes(storageRef, file);
+      console.log('✅ Upload successful:', snapshot.metadata.fullPath);
+      
+      const downloadUrl = await getDownloadURL(storageRef);
+      console.log('🔗 Download URL:', downloadUrl);
+      
+      return downloadUrl;
+    } catch (err) {
+      console.error('❌ Upload failed:', err);
+      throw new Error(`Failed to upload image: ${err}`);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,10 +110,12 @@ export default function CreateClubForm() {
       let coverUrl: string | null = null;
       let iconUrl: string | null = null;
 
-      if (coverImage)
+      if (coverImage) {
         coverUrl = await uploadImage(coverImage, `clubs/${slug}/cover-${Date.now()}.jpg`);
-      if (iconImage)
+      }
+      if (iconImage) {
         iconUrl = await uploadImage(iconImage, `clubs/${slug}/icon-${Date.now()}.jpg`);
+      }
 
       const tags = formData.tags
         .split(',')
@@ -120,6 +134,7 @@ export default function CreateClubForm() {
         creatorName: user.displayName || 'Anonymous',
         membersCount: 1,
         booksCount: 0,
+        memberIds: [user.uid], // ✅ Add this for join functionality
         tags: tags.length > 0 ? tags : undefined,
         theme: { primary: '#3B82F6', secondary: '#8B5CF6' },
         createdAt: serverTimestamp(),
@@ -138,7 +153,7 @@ export default function CreateClubForm() {
       router.push(`/clubs/${slug}`);
     } catch (err) {
       console.error('❌ Failed to create club:', err);
-      setError('Failed to create club. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to create club. Please try again.');
       setSubmitting(false);
     }
   };
@@ -170,7 +185,7 @@ export default function CreateClubForm() {
         <div className="panel p-6">
           <label className="label">Cover Image (Optional)</label>
           {coverPreview ? (
-            <div className="relative h-40 rounded-lg overflow-hidden mt-3">
+            <div style={{ position: 'relative', height: '160px' }} className="rounded-lg overflow-hidden mt-3">
               <Image src={coverPreview} alt="Cover preview" fill className="object-cover" />
               <button
                 type="button"
@@ -192,7 +207,7 @@ export default function CreateClubForm() {
           <label className="label">Club Icon (Optional)</label>
           {iconPreview ? (
             <div className="flex items-center gap-4 mt-3">
-              <div className="relative w-20 h-20 rounded-full overflow-hidden">
+              <div style={{ position: 'relative', width: '80px', height: '80px' }} className="rounded-full overflow-hidden">
                 <Image src={iconPreview} alt="Icon preview" fill className="object-cover" />
               </div>
               <button

@@ -6,9 +6,12 @@ import ClubHeader from '@/components/ClubHeader';
 import ClubFeed from '@/components/ClubFeed';
 import ClubSpotlight from '@/components/ClubSpotlight';
 import ClubSidebar from '@/components/ClubSidebar';
+import ClubBooks from '@/components/ClubBooks'; // ✅ Add this import
+import { useAuth } from '@/context/AuthProvider';
 import styles from '../ClubsPage.module.css';
 
 interface Club {
+  slug: string;
   name: string;
   description?: string;
   iconUrl?: string;
@@ -17,6 +20,8 @@ interface Club {
   booksCount?: number;
   category?: string;
   createdAt?: string;
+  memberIds?: string[];
+  ownerUid?: string; // ✅ Add this
 }
 
 interface Event {
@@ -43,6 +48,7 @@ interface ClubData {
 
 export default function ClubsPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
+  const { user } = useAuth();
   const [clubData, setClubData] = useState<ClubData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +58,8 @@ export default function ClubsPage({ params }: { params: { slug: string } }) {
         const res = await fetch(`/api/clubs/${slug}`);
         if (!res.ok) throw new Error('Club not found');
         const data = await res.json();
+        console.log('📊 Club data:', data);
+        console.log('👤 Current user:', user?.uid);
         setClubData(data);
       } catch (err) {
         console.error('Error fetching club data:', err);
@@ -60,7 +68,33 @@ export default function ClubsPage({ params }: { params: { slug: string } }) {
         setLoading(false);
       }
     })();
-  }, [slug]);
+  }, [slug, user]);
+
+  const handleJoinSuccess = (newMemberCount: number) => {
+    if (clubData?.club && user?.uid) {
+      setClubData({
+        ...clubData,
+        club: {
+          ...clubData.club,
+          membersCount: newMemberCount,
+          memberIds: [...(clubData.club.memberIds || []), user.uid],
+        },
+      });
+    }
+  };
+
+  // ✅ Add this function to refresh club data after adding a book
+  const handleBookAdded = async () => {
+    try {
+      const res = await fetch(`/api/clubs/${slug}`);
+      if (res.ok) {
+        const data = await res.json();
+        setClubData(data);
+      }
+    } catch (err) {
+      console.error('Error refreshing club data:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -90,11 +124,20 @@ export default function ClubsPage({ params }: { params: { slug: string } }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <ClubHeader club={club} />
+        <ClubHeader 
+          club={club} 
+          currentUserId={user?.uid}
+          onJoinSuccess={handleJoinSuccess}
+          onBookAdded={handleBookAdded} // ✅ Add this
+        />
       </motion.div>
 
       {/* ───── Main Feed ───── */}
       <section className={styles.feedArea}>
+        {/* ✅ Add the books section */}
+        <ClubBooks clubSlug={slug} />
+
+        {/* Existing feed */}
         {posts.length > 0 ? (
           <ClubFeed posts={posts} />
         ) : (
