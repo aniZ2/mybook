@@ -1,4 +1,5 @@
 'use client';
+
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useState } from 'react';
@@ -24,7 +25,13 @@ export default function ImportISBNCSV(){
   const append = (s:string)=> setLog(l=>[...l, s]);
 
   const run = async ()=>{
-    setBusy(true); setLog([]);
+    if (!db) { // ✅ Add db check
+      alert('Database not initialized');
+      return;
+    }
+
+    setBusy(true); 
+    setLog([]);
     const lines = raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
     let i = 0;
     for (const line of lines){
@@ -36,7 +43,9 @@ export default function ImportISBNCSV(){
           title: b.title,
           authorId: (b.authors?.[0]||'unknown').toLowerCase().replace(/[^a-z0-9]+/g,'-'),
           coverUrl: b.cover || null,
-          genres: [], mood: [], pacing: 'medium',
+          genres: [], 
+          mood: [], 
+          pacing: 'medium',
           meta: { isbn13: isbn }
         }, { merge: true });
         append(`✅ ${isbn} — ${b.title}`);

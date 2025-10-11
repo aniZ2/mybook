@@ -13,7 +13,7 @@ export default function AuthorsPage() {
       <div className="mb-8">
         <h1 className="h1">Discover Authors</h1>
         <p className="muted mt-2">
-          Explore our community of talented authors and find your next favorite writer
+          Explore our community of talented authors and find your next favorite writer.
         </p>
       </div>
 

@@ -41,8 +41,12 @@ export default function BookSearch() {
     }
   }
 
-  /** Save book to Firestore if it’s not already there, return slug */
+  /** Save book to Firestore if it's not already there, return slug */
   async function addBookIfMissing(b: BookItem) {
+    if (!db) { // ✅ Add db check
+      throw new Error('Database not initialized');
+    }
+
     const slug = slugify(b.title, b.authors?.[0]);
     const ref = doc(db, 'books', slug);
     const snap = await getDoc(ref);
@@ -90,8 +94,13 @@ export default function BookSearch() {
   }
 
   async function viewDetails(b: BookItem) {
-    const slug = await addBookIfMissing(b);
-    router.push(`/books/${slug}`);
+    try {
+      const slug = await addBookIfMissing(b);
+      router.push(`/books/${slug}`);
+    } catch (err: any) {
+      console.error('Error adding book:', err);
+      alert(err.message || 'Failed to add book');
+    }
   }
 
   return (
@@ -118,44 +127,48 @@ export default function BookSearch() {
         )}
 
         <div className="grid" style={{ marginTop: '1rem', gap: '1rem' }}>
-          {items.map((b) => (
-            <div key={b.id + (b.isbn13 || '')} className="panel col-6">
-              <div style={{ display: 'flex', gap: '.8rem' }}>
-                {b.cover && (
-                  <img
-                    src={b.cover}
-                    alt={b.title}
-                    style={{
-                      width: 64,
-                      height: 96,
-                      objectFit: 'cover',
-                      borderRadius: 6,
-                    }}
-                  />
-                )}
-                <div>
-                  <button
-                    className="btn"
-                    onClick={() => viewDetails(b)}
-                    style={{
-                      padding: 0,
-                      border: 'none',
-                      background: 'transparent',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                    title="Open details"
-                  >
-                    {b.title}
-                  </button>
-                  <div className="muted">{(b.authors || []).join(', ')}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>
-                    src: {b.source} • ISBN13: {b.isbn13 || '—'}
+          {items.length === 0 && !busy && !error ? (
+            <p className="muted col-12">Search for books to get started!</p>
+          ) : (
+            items.map((b) => (
+              <div key={b.id + (b.isbn13 || '')} className="panel col-6">
+                <div style={{ display: 'flex', gap: '.8rem' }}>
+                  {b.cover && (
+                    <img
+                      src={b.cover}
+                      alt={b.title}
+                      style={{
+                        width: 64,
+                        height: 96,
+                        objectFit: 'cover',
+                        borderRadius: 6,
+                      }}
+                    />
+                  )}
+                  <div>
+                    <button
+                      className="btn"
+                      onClick={() => viewDetails(b)}
+                      style={{
+                        padding: 0,
+                        border: 'none',
+                        background: 'transparent',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                      title="Open details"
+                    >
+                      {b.title}
+                    </button>
+                    <div className="muted">{(b.authors || []).join(', ')}</div>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      src: {b.source} • ISBN13: {b.isbn13 || '—'}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
     </main>

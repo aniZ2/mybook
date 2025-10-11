@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getDbOrThrow } from '@/lib/firebase'; // ✅ Safe Firestore getter
 import { authorConverter, type AuthorDoc } from '@/types/firestore';
 
 export default function AuthorsGrid() {
@@ -13,9 +13,11 @@ export default function AuthorsGrid() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'followers' | 'name'>('followers');
 
+  /* ─────────── Load Authors ─────────── */
   useEffect(() => {
     async function loadAuthors() {
       try {
+        const db = getDbOrThrow(); // ✅ Ensure Firestore instance
         const ref = collection(db, 'authors').withConverter(authorConverter);
         const q = query(ref, orderBy('followersCount', 'desc'), limit(100));
         const snap = await getDocs(q);
@@ -24,11 +26,12 @@ export default function AuthorsGrid() {
         console.error('❌ Failed to fetch authors:', err);
       } finally {
         setLoading(false);
-      }
+      } 
     }
     loadAuthors();
   }, []);
 
+  /* ─────────── Filter + Sort ─────────── */
   const filteredAndSortedAuthors = useMemo(() => {
     let filtered = authors;
 
@@ -38,15 +41,15 @@ export default function AuthorsGrid() {
       filtered = authors.filter(
         (a) =>
           a.name.toLowerCase().includes(lower) ||
-          a.handle.toLowerCase().includes(lower) ||
-          a.about.toLowerCase().includes(lower)
+          a.handle?.toLowerCase().includes(lower) ||
+          a.about?.toLowerCase().includes(lower)
       );
     }
 
     // Sort
     const sorted = [...filtered].sort((a, b) => {
       if (sortBy === 'followers') {
-        return b.followersCount - a.followersCount;
+        return (b.followersCount ?? 0) - (a.followersCount ?? 0);
       }
       return a.name.localeCompare(b.name);
     });
@@ -54,9 +57,8 @@ export default function AuthorsGrid() {
     return sorted;
   }, [authors, searchTerm, sortBy]);
 
-  if (loading) {
-    return <AuthorsLoadingSkeleton />;
-  }
+  /* ─────────── UI ─────────── */
+  if (loading) return <AuthorsLoadingSkeleton />;
 
   return (
     <div>
@@ -71,7 +73,7 @@ export default function AuthorsGrid() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        
+
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as 'followers' | 'name')}
@@ -84,7 +86,8 @@ export default function AuthorsGrid() {
 
       {/* Results count */}
       <div className="mb-4 text-sm muted">
-        {filteredAndSortedAuthors.length} {filteredAndSortedAuthors.length === 1 ? 'author' : 'authors'}
+        {filteredAndSortedAuthors.length}{' '}
+        {filteredAndSortedAuthors.length === 1 ? 'author' : 'authors'}
         {searchTerm && ` matching "${searchTerm}"`}
       </div>
 
@@ -129,23 +132,20 @@ export default function AuthorsGrid() {
 
                 {/* Author Info */}
                 <h2 className="h2 mt-4 line-clamp-1">{author.name}</h2>
-                
+
                 {author.handle && (
                   <p className="text-sm text-gray-500 mt-1">@{author.handle}</p>
                 )}
-                
+
                 {author.about && (
-                  <p className="muted text-sm mt-3 line-clamp-3">
-                    {author.about}
-                  </p>
+                  <p className="muted text-sm mt-3 line-clamp-3">{author.about}</p>
                 )}
-                
+
                 {/* Stats */}
                 <div className="mt-auto pt-4 text-sm muted">
                   <span className="font-semibold text-gray-900">
-                    {author.followersCount.toLocaleString()}
-                  </span>
-                  {' '}
+                    {(author.followersCount ?? 0).toLocaleString()}
+                  </span>{' '}
                   {author.followersCount === 1 ? 'Follower' : 'Followers'}
                 </div>
               </div>
@@ -157,6 +157,7 @@ export default function AuthorsGrid() {
   );
 }
 
+/* ─────────── Skeleton ─────────── */
 function AuthorsLoadingSkeleton() {
   return (
     <div>
@@ -164,7 +165,7 @@ function AuthorsLoadingSkeleton() {
         <div className="flex-1 h-10 bg-gray-200 rounded-lg animate-pulse" />
         <div className="w-40 h-10 bg-gray-200 rounded-lg animate-pulse" />
       </div>
-      
+
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {[...Array(8)].map((_, i) => (
           <div key={i} className="panel animate-pulse">

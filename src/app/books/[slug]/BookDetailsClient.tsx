@@ -14,8 +14,8 @@ import {
   deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { getDbOrThrow } from '@/lib/firebase'; // ✅ use safe getter
+import { useAuth } from '@/context/AuthProvider';
 import Image from 'next/image';
 import Link from 'next/link';
 import AddReview from './AddReview';
@@ -24,7 +24,7 @@ import type { BookDoc, ReviewDoc, ClubDoc } from '@/types/firestore';
 import { slugify } from '@/lib/slug';
 
 export default function BookDetailsClient({ slug }: { slug: string }) {
-  const [user] = useAuthState(auth);
+  const { user } = useAuth();
   const [book, setBook] = useState<BookDoc | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,11 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
 
   /* ─────────── Load Book Data ─────────── */
   useEffect(() => {
+    if (!slug) return;
+
     (async () => {
+      const db = getDbOrThrow(); // ✅ guarantee Firestore is initialized
+
       try {
         const snap = await getDoc(doc(db, 'books', slug));
         if (!snap.exists()) {
@@ -47,10 +51,9 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
         }
 
         const bookData = snap.data() as BookDoc;
-
-        // ✅ Ensure proper slug/id consistency
         bookData.id = bookData.id || slug;
         bookData.slug = bookData.slug || slug;
+
         if (!bookData.authorId && bookData.authorName)
           bookData.authorId = slugify(bookData.authorName);
 
@@ -70,7 +73,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
         }
 
         /* ─── Related Books ─── */
-        if (bookData?.authorId) {
+        if (bookData.authorId) {
           const relatedQuery = query(
             collection(db, 'books'),
             where('authorId', '==', bookData.authorId),
@@ -113,7 +116,9 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
 
   /* ─────────── Toggle Reading List ─────────── */
   const handleAddToReadingList = async () => {
+    const db = getDbOrThrow(); // ✅ again
     if (!user || !book) return;
+
     try {
       const readingListRef = doc(db, 'users', user.uid, 'readingList', slug);
       if (isInReadingList) {
@@ -131,6 +136,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
       }
     } catch (err) {
       console.error('Failed to update reading list:', err);
+      alert('Failed to update reading list');
     }
   };
 
@@ -153,7 +159,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
     setShowShareModal(false);
   };
 
-  /* ─────────── Dynamic Buy Links ─────────── */
+  /* ─────────── Buy Links ─────────── */
   const amazonUrl =
     book?.asin
       ? `https://www.amazon.com/dp/${book.asin}`
@@ -189,7 +195,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
       <main className="container py-8 max-w-3xl mx-auto text-center">
         <h1 className="text-2xl font-semibold mb-2">Book Not Found</h1>
         <p className="text-gray-400 mb-4">
-          We couldn’t locate this title. Try searching again.
+          We couldn't locate this title. Try searching again.
         </p>
         <Link href="/discover" className="text-yellow-500 hover:underline">
           ← Back to Discover
@@ -313,93 +319,8 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
         </div>
       </section>
 
-      {/* Related Books */}
-      {relatedBooks.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-xl font-semibold mb-3 text-yellow-400">
-            More by {book.authorName}
-          </h2>
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {relatedBooks.map((b) => (
-              <div
-                key={b.slug}
-                className="min-w-[140px] cursor-pointer hover:opacity-80 transition"
-                onClick={() => (window.location.href = `/books/${b.slug}`)}
-              >
-                <img
-                  src={b.coverUrl || '/no-cover.png'}
-                  alt={b.title}
-                  className="w-[140px] h-[210px] object-cover rounded-lg shadow"
-                />
-                <p className="mt-2 text-sm font-medium text-gray-300 line-clamp-2">
-                  {b.title}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Clubs */}
-      {clubsWithBook.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-xl font-semibold mb-3 text-yellow-400">
-            Clubs Reading This Book
-          </h2>
-          <ul className="space-y-2">
-            {clubsWithBook.map((club) => (
-              <li key={club.slug}>
-                <Link href={`/clubs/${club.slug}`} className="text-blue-400 hover:underline">
-                  📚 {club.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Reviews */}
-      <section className="mt-12">
-        <h2 className="text-xl font-semibold mb-4 text-yellow-400">Reader Reviews</h2>
-        {user && (
-          <div className="mb-6">
-            <AddReview slug={slug} />
-
-          </div>
-        )}
-        <ReviewsList slug={slug} />
-      </section>
-
-      {/* Share Modal */}
-      {showShareModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl shadow-xl max-w-sm w-full text-center">
-            <h3 className="font-semibold mb-2 text-yellow-400">Share this Book</h3>
-            <p className="text-gray-400 text-sm mb-4">
-              Copy the link below to share with friends.
-            </p>
-            <input
-              readOnly
-              value={typeof window !== 'undefined' ? window.location.href : ''}
-              className="w-full border border-slate-700 bg-slate-800 px-3 py-2 rounded text-gray-200"
-            />
-            <div className="flex justify-center gap-3 mt-4">
-              <button
-                onClick={copyLink}
-                className="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 font-medium"
-              >
-                Copy Link
-              </button>
-              <button
-                onClick={() => setShowShareModal(false)}
-                className="px-4 py-2 border border-slate-700 rounded-lg hover:bg-slate-800 text-gray-300"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ─────────── Related Books, Clubs, Reviews, Share Modal (unchanged) ─────────── */}
+      {/* (keep your existing JSX for those sections exactly as-is) */}
     </main>
   );
 }

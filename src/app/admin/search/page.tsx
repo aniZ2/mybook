@@ -2,15 +2,20 @@
 
 import { useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
-import { functions, auth } from '@/lib/firebase';
+import { functions } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider'; // ✅ Import useAuth
 
 export default function AdminSearch() {
+  const { user } = useAuth(); // ✅ Get user from context
   const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(false);
 
   const run = async () => {
-    const user = auth.currentUser;
-    if (!user) return alert('Please sign in first.');
+    if (!user) return alert('Please sign in first.'); // ✅ Use user from context
+
+    if (!functions) {
+      return alert('Firebase Functions not initialized.');
+    }
 
     setLoading(true);
     try {
@@ -36,7 +41,7 @@ export default function AdminSearch() {
     >
       <h2 style={{ marginBottom: '.5rem' }}>Admin • Search / Embeddings</h2>
       <p style={{ color: '#555', marginBottom: '1rem' }}>
-        Build embeddings for books to power Booklyverse’s vibe search.
+        Build embeddings for books to power Booklyverse's vibe search.
       </p>
 
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>

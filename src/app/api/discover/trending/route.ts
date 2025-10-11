@@ -1,8 +1,9 @@
+// src/app/api/discover/trending/route.ts
 import { NextRequest } from 'next/server';
 import algoliasearch from 'algoliasearch';
-import { db } from '@/lib/firebase';
-import { collection, orderBy, limit, getDocs, query } from 'firebase/firestore';
-import { slugify } from '@/lib/slug'; // 👈 add this
+import { getAdminDb } from '@/lib/firebase-admin'; // ✅ runtime-safe import
+import { slugify } from '@/lib/slug';
+import { Timestamp } from 'firebase-admin/firestore'; // optional: for type support
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ try {
     index = client.initIndex(ALGOLIA_INDEX_NAME);
     console.log('✅ Connected to Algolia index:', ALGOLIA_INDEX_NAME);
   } else {
-    console.warn('⚠️ Missing Algolia credentials — will use Firestore fallback.');
+    console.warn('⚠️ Missing Algolia credentials — using Firestore fallback');
   }
 } catch (err) {
   console.error('❌ Algolia init failed:', err);
@@ -36,13 +37,13 @@ export async function GET(req: NextRequest) {
   try {
     console.log('🚀 /api/discover/trending called');
 
-    // ─── 1️⃣ Try Algolia first ───────────────────────────────
+    // ─── 1️⃣ Try Algolia first ───────────────
     if (index) {
       try {
         console.log('🧠 Querying Algolia trending replica...');
-
         const trendingIndexName = `${ALGOLIA_INDEX_NAME}_sort_search_score_desc`;
         let trendingIndex;
+
         try {
           trendingIndex = index.client.initIndex(trendingIndexName);
         } catch {
@@ -84,15 +85,21 @@ export async function GET(req: NextRequest) {
 
     // ─── 2️⃣ Fallback: Firestore (latest books) ───────────────
     console.warn('⚠️ Falling back to Firestore trending...');
-    const snap = await getDocs(
-      query(collection(db, 'books'), orderBy('createdAt', 'desc'), limit(10))
-    );
+
+    const dbAdmin = await getAdminDb(); // ✅ runtime-safe initialization
+    const snap = await dbAdmin
+      .collection('books')
+      .orderBy('createdAt', 'desc')
+      .limit(10)
+      .get();
 
     const fallbackBooks = snap.docs.map((d) => {
       const data = d.data() as any;
       return {
         id: d.id,
-        slug: data.slug || slugify(data.title, data.authorName || data.authors?.[0] || d.id),
+        slug:
+          data.slug ||
+          slugify(data.title, data.authorName || data.authors?.[0] || d.id),
         title: data.title,
         authorName: data.authorName || data.authors?.[0] || 'Unknown',
         coverUrl: data.coverUrl || data.cover || null,
@@ -107,7 +114,6 @@ export async function GET(req: NextRequest) {
     });
 
     console.log(`✅ Firestore fallback returned ${fallbackBooks.length} books`);
-
     return new Response(JSON.stringify({ books: fallbackBooks }), {
       headers: { 'content-type': 'application/json' },
     });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider'; // ✅ Import useAuth
 
 interface AuditRow {
   id: string;
@@ -9,7 +9,7 @@ interface AuditRow {
   uid?: string;
   kind?: string;
   note?: string;
-  rows?: any[];        // changed to any[] instead of unknown[]
+  rows?: any[];
   context?: Record<string, any> | null;
 }
 
@@ -34,6 +34,7 @@ function toCSV(rows: AuditRow[]): string {
 }
 
 export default function AdminAudit() {
+  const { user } = useAuth(); // ✅ Get user from context
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [kind, setKind] = useState('');
   const [since, setSince] = useState('');
@@ -42,17 +43,16 @@ export default function AdminAudit() {
   const [loading, setLoading] = useState(false);
 
   const fetchRows = useCallback(async () => {
+    if (!user) { // ✅ Check user from context
+      setError('Sign in first.');
+      return;
+    }
+
     try {
       setError(null);
       setLoading(true);
 
-      const u = auth.currentUser;
-      if (!u) {
-        setError('Sign in first.');
-        return;
-      }
-
-      const tok = await u.getIdToken(true);
+      const tok = await user.getIdToken(true); // ✅ Use user from context
       const qs = new URLSearchParams();
       if (kind) qs.set('kind', kind);
       if (since) qs.set('since', since);
@@ -70,14 +70,16 @@ export default function AdminAudit() {
     } finally {
       setLoading(false);
     }
-  }, [kind, since, until]);
+  }, [user, kind, since, until]); // ✅ Add user to dependencies
 
   useEffect(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
     setSince(d.toISOString().slice(0, 16));
-    fetchRows();
-  }, [fetchRows]);
+    if (user) { // ✅ Only fetch if user exists
+      fetchRows();
+    }
+  }, [user, fetchRows]); // ✅ Add user to dependencies
 
   const downloadCSV = () => {
     if (!rows.length) return;

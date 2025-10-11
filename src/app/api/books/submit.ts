@@ -1,6 +1,6 @@
 // src/app/api/books/create/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { getDbOrThrow } from '@/lib/firebase'; // ✅ Changed import
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { slugify } from '@/lib/slug';
 
@@ -15,6 +15,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Get database instance - will throw if not initialized
+    const db = getDbOrThrow(); // ✅ Added this line
 
     // Create slug from title and author
     const slug = slugify(title, authorName);

@@ -1,5 +1,4 @@
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const dynamic = 'force-dynamic'
 
 import { getAuth } from "firebase-admin/auth";
 import { cookies } from "next/headers";

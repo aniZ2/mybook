@@ -7,7 +7,12 @@ import { getFunctions, type Functions } from 'firebase/functions';
 import algoliasearch, { type SearchClient, type SearchIndex } from 'algoliasearch';
 
 // ─────────────────────────────
-// 🔥 Firebase Initialization
+// 🌎 Environment Guard
+// ─────────────────────────────
+const isBrowser = typeof window !== 'undefined';
+
+// ─────────────────────────────
+// 🔥 Firebase Client SDK Initialization
 // ─────────────────────────────
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -16,17 +21,24 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Only initialize once (important for Next.js hot reload)
-const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+let app: FirebaseApp;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
+let functions: Functions | null = null;
 
-// Correct modular service getters
-export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
-export const storage: FirebaseStorage = getStorage(app);
-export const functions: Functions = getFunctions(app, 'us-central1');
+// Initialize app
+app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+// Only attach services in the browser
+if (isBrowser) {
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+  functions = getFunctions(app, 'us-central1');
+}
 
 // ─────────────────────────────
 // 🔍 Algolia Initialization
@@ -44,30 +56,30 @@ if (ALGOLIA_APP_ID && ALGOLIA_SEARCH_KEY) {
 }
 
 // ─────────────────────────────
-// ✅ Safe Getters / Guards
+// ✅ Safe Getters
 // ─────────────────────────────
-export function getAuthOrThrow(): Auth {
-  if (!auth) throw new Error('Firebase Auth service not initialized.');
-  return auth;
-}
-
 export function getDbOrThrow(): Firestore {
-  if (!db) throw new Error('Firestore not initialized.');
+  if (!db) throw new Error('❌ Firestore not initialized.');
   return db;
 }
 
-export function getAlgoliaOrThrow(): SearchClient {
-  if (!algoliaClient) throw new Error('Algolia client not initialized.');
-  return algoliaClient;
+export function getAuthOrThrow(): Auth {
+  if (!auth) throw new Error('❌ Firebase Auth not initialized.');
+  return auth;
+}
+
+export function getStorageOrThrow(): FirebaseStorage {
+  if (!storage) throw new Error('❌ Firebase Storage not initialized.');
+  return storage;
 }
 
 export function getAlgoliaIndexOrThrow(): SearchIndex {
-  if (!algoliaIndex) throw new Error('Algolia index not initialized.');
+  if (!algoliaIndex) throw new Error('❌ Algolia index not initialized.');
   return algoliaIndex;
 }
 
 // ─────────────────────────────
 // 📦 Exports
 // ─────────────────────────────
-export { app, algoliaClient, algoliaIndex };
+export { app, auth, db, storage, functions, algoliaClient, algoliaIndex };
 export default app;

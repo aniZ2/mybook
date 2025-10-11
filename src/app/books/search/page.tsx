@@ -14,9 +14,9 @@ import {
   getDocs,
   limit,
 } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider'; // ✅ Import useAuth
 import { slugify } from '@/lib/slug';
-import { onAuthStateChanged } from 'firebase/auth';
 
 /* ─────────────── Types ─────────────── */
 type BookItem = {
@@ -54,25 +54,23 @@ function getAnonId() {
 
 /* ─────────────── Component ─────────────── */
 export default function BookSearch() {
-  const [user, setUser] = useState<{ uid: string | null } | null>(null);
+  const { user } = useAuth(); // ✅ Get user from context
   const [q, setQ] = useState('');
   const [items, setItems] = useState<BookItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  /* 🔐 Track signed-in user */
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) =>
-      setUser(u ? { uid: u.uid } : { uid: getAnonId() })
-    );
-    return unsub;
-  }, []);
-
   /* 🔍 Search Books / ASIN */
   const search = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!q.trim()) return;
+    
+    if (!db) { // ✅ Add db check
+      setError('Database not initialized');
+      return;
+    }
+
     const queryText = q.trim().toLowerCase();
     setBusy(true);
     setError(null);
@@ -130,6 +128,10 @@ export default function BookSearch() {
 
   /* ➕ Add Book If Missing */
   const addBookIfMissing = async (b: BookItem) => {
+    if (!db) { // ✅ Add db check
+      throw new Error('Database not initialized');
+    }
+
     const slug = slugify(b.title, b.authors?.[0] || b.asin || b.isbn13);
     const ref = doc(db, 'books', slug);
     const snap = await getDoc(ref);
@@ -190,9 +192,9 @@ export default function BookSearch() {
     try {
       const slug = await addBookIfMissing(b);
       router.push(`/books/${slug}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving book:', err);
-      alert('Failed to save book.');
+      alert(err.message || 'Failed to save book.');
     }
   };
 
@@ -208,7 +210,7 @@ export default function BookSearch() {
           placeholder="Enter title, ISBN, or ASIN..."
           style={{ flex: 1, padding: '.65rem .9rem', borderRadius: 6 }}
         />
-        <button disabled={busy} style={{ background: '#d4af37', color: '#111', borderRadius: 6 }}>
+        <button disabled={busy} style={{ background: '#d4af37', color: '#111', borderRadius: 6, border: 'none', padding: '.65rem 1.2rem', cursor: busy ? 'wait' : 'pointer' }}>
           {busy ? 'Searching…' : 'Search'}
         </button>
       </form>
@@ -216,16 +218,32 @@ export default function BookSearch() {
       {error && <p style={{ color: 'tomato' }}>{error}</p>}
 
       <div style={{ display: 'grid', gap: '1rem' }}>
-        {items.map((b) => (
-          <div key={b.id} onClick={() => viewDetails(b)} style={{ cursor: 'pointer' }}>
-            {b.cover && <img src={b.cover} alt={b.title} width={70} height={100} />}
-            <div>
-              <strong>{b.title}</strong>
-              <p>{b.authors.join(', ') || 'Unknown author'}</p>
-              <small>{b.source.toUpperCase()}</small>
+        {items.length === 0 && !busy && !error ? (
+          <p style={{ color: '#999' }}>Search for books or enter an ASIN to get started!</p>
+        ) : (
+          items.map((b) => (
+            <div 
+              key={b.id} 
+              onClick={() => viewDetails(b)} 
+              style={{ 
+                cursor: 'pointer', 
+                display: 'flex', 
+                gap: '1rem',
+                padding: '1rem',
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 8,
+                transition: 'all 0.2s'
+              }}
+            >
+              {b.cover && <img src={b.cover} alt={b.title} width={70} height={100} style={{ borderRadius: 4 }} />}
+              <div>
+                <strong>{b.title}</strong>
+                <p style={{ margin: '.25rem 0', color: '#999' }}>{b.authors.join(', ') || 'Unknown author'}</p>
+                <small style={{ color: '#666' }}>{b.source.toUpperCase()}</small>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </main>
   );

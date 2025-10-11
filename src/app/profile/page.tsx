@@ -1,20 +1,32 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import Link from 'next/link';
+import { useState } from 'react';
+import { useAuth } from '@/context/AuthProvider'; // ✅ Get user from context
 
 export default function ProfilePage() {
+  const { user, loading } = useAuth();
   const [tab, setTab] = useState<'about' | 'activity' | 'friends'>('about');
-  const [user, setUser] = useState<User | null>(null);
 
-  // Listen for authentication changes
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => unsub();
-  }, []);
+  // ──────────── Loading State ────────────
+  if (loading) {
+    return (
+      <main
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          color: '#555',
+        }}
+      >
+        <p style={{ fontSize: '1.2rem' }}>Loading...</p>
+      </main>
+    );
+  }
 
+  // ──────────── Sign-in Prompt ────────────
   if (!user) {
     return (
       <main
@@ -28,8 +40,9 @@ export default function ProfilePage() {
           gap: '1rem',
         }}
       >
-        <p style={{ fontSize: '1.2rem' }}>You’re not signed in.</p>
-        <a
+        <p style={{ fontSize: '1.2rem' }}>You're not signed in.</p>
+
+        <Link
           href="/login"
           style={{
             background: '#2563eb',
@@ -41,17 +54,18 @@ export default function ProfilePage() {
           }}
         >
           Sign In
-        </a>
+        </Link>
       </main>
     );
   }
 
+  // ──────────── Profile Info ────────────
   const displayName = user.displayName || user.email || 'Anonymous Reader';
   const photoURL = user.photoURL || '/default-avatar.png';
 
   return (
     <main>
-      {/* Cover Photo */}
+      {/* ───── Cover Photo + Header ───── */}
       <div
         style={{
           position: 'relative',
@@ -81,17 +95,18 @@ export default function ProfilePage() {
               background: '#111',
             }}
           >
-            <Image
-              src={photoURL}
-              alt="Profile picture"
-              width={120}
-              height={120}
-            />
+            <Image src={photoURL} alt="Profile picture" width={120} height={120} />
           </div>
 
           {/* Name + Buttons */}
           <div>
-            <h1 style={{ marginBottom: '.25rem', fontSize: '1.8rem', color: '#fff' }}>
+            <h1
+              style={{
+                marginBottom: '.25rem',
+                fontSize: '1.8rem',
+                color: '#fff',
+              }}
+            >
               {displayName}
             </h1>
             <p style={{ color: '#ddd' }}>📚 Avid Reader · Club Member</p>
@@ -126,7 +141,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* ───── Tabs ───── */}
       <div
         style={{
           marginTop: '80px',
@@ -159,7 +174,7 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* Tab Content */}
+      {/* ───── Tab Content ───── */}
       <div style={{ padding: '2rem', maxWidth: '800px', margin: '2rem auto' }}>
         {tab === 'about' && (
           <div

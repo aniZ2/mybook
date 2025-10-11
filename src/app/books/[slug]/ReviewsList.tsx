@@ -9,15 +9,23 @@ export default function ReviewsList({ slug }: { slug: string }) {
   const [reviews, setReviews] = useState<ReviewDoc[]>([]);
 
   useEffect(() => {
+    if (!db) { // ✅ Add db check
+      console.error('Firestore not initialized');
+      return;
+    }
+
     const q = query(
       collection(db, 'books', slug, 'reviews'),
       orderBy('createdAt', 'desc')
     );
-    return onSnapshot(q, snap => {
+    
+    const unsubscribe = onSnapshot(q, snap => {
       setReviews(
         snap.docs.map(d => ({ id: d.id, ...(d.data() as ReviewDoc) }))
       );
     });
+
+    return unsubscribe; // ✅ Return cleanup function
   }, [slug]);
 
   const summary = useMemo(() => {

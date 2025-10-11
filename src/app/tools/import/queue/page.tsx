@@ -1,29 +1,42 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { addDoc, collection, doc, onSnapshot } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes } from 'firebase/storage';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider'; // ✅ Import useAuth
 
 export default function QueueImport(){
+  const { user } = useAuth(); // ✅ Get user from context
   const [file, setFile] = useState<File|null>(null);
   const [jobId, setJobId] = useState<string|null>(null);
   const [job, setJob] = useState<any>(null);
 
   const start = async () => {
     if (!file) return;
+    if (!storage || !db) {
+      alert('Firebase not initialized');
+      return;
+    }
+
     const id = 'import_'+Date.now();
     const path = `imports/${id}.csv`;
     await uploadBytes(ref(storage, path), await file.arrayBuffer());
-    const u = auth.currentUser;
+    
     const docRef = await addDoc(collection(db,'imports'), {
-      createdAt: new Date(), createdBy: u?.uid || null, path, status: 'queued', processed: 0, total: 0, errors: []
+      createdAt: new Date(), 
+      createdBy: user?.uid || null, // ✅ Use user from context
+      path, 
+      status: 'queued', 
+      processed: 0, 
+      total: 0, 
+      errors: []
     });
     setJobId(docRef.id);
   };
 
   useEffect(()=>{
-    if (!jobId) return;
+    if (!jobId || !db) return;
     const unsub = onSnapshot(doc(db,'imports', jobId), snap=> setJob(snap.data()));
     return ()=>unsub();
   }, [jobId]);

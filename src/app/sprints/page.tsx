@@ -40,35 +40,63 @@ export default function Sprints() {
 
   // ---- 3️⃣ Load sprints from Firestore --------------
   useEffect(() => {
+    if (!db) { // ✅ Add db check
+      console.error('Firestore not initialized');
+      return;
+    }
+
     const q = query(
       collection(db, 'events').withConverter(sprintConverter),
       orderBy('startsAt', 'desc')
     );
-    return onSnapshot(q, (snap) =>
+    
+    const unsubscribe = onSnapshot(q, (snap) =>
       setSprints(
         snap.docs
           .map((d) => d.data())
           .filter((x) => x.type === 'sprint')
       )
     );
+
+    return unsubscribe; // ✅ Return cleanup function
   }, []);
 
   // ---- 4️⃣ Create a new sprint ----------------------
   const create = async () => {
-    const d = await addDoc(collection(db, 'events'), {
-      type: 'sprint',
-      startsAt: serverTimestamp(),
-      duration,
-      participants: [],
-    });
-    alert('Sprint created: ' + d.id);
+    if (!db) { // ✅ Add db check
+      alert('Database not initialized');
+      return;
+    }
+
+    try {
+      const d = await addDoc(collection(db, 'events'), {
+        type: 'sprint',
+        startsAt: serverTimestamp(),
+        duration,
+        participants: [],
+      });
+      alert('Sprint created: ' + d.id);
+    } catch (error) {
+      console.error('Error creating sprint:', error);
+      alert('Failed to create sprint');
+    }
   };
 
   // ---- 5️⃣ Join an existing sprint ------------------
   const join = async (id: string) => {
-    await updateDoc(doc(db, 'events', id), {
-      participants: arrayUnion('anon'),
-    });
+    if (!db) { // ✅ Add db check
+      alert('Database not initialized');
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'events', id), {
+        participants: arrayUnion('anon'),
+      });
+    } catch (error) {
+      console.error('Error joining sprint:', error);
+      alert('Failed to join sprint');
+    }
   };
 
   // ---- 6️⃣ UI ---------------------------------------

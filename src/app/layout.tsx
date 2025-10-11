@@ -3,6 +3,10 @@ import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/context/AuthProvider"; // ✅ FIXED PATH
 import Header from "@/components/Header";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 export const metadata: Metadata = {
   title: "Booklyverse",
   description: "A social library for readers & authors",

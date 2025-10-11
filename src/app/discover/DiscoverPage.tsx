@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { db } from '@/lib/firebase';
+import { getDbOrThrow } from '@/lib/firebase'; // ✅ Changed import
 import { motion, AnimatePresence } from 'framer-motion';
 import { slugify } from '@/lib/slug';
 import DiscoverSection from './DiscoverSection';
@@ -63,6 +63,8 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
     console.log('🔄 Starting data fetch...');
     (async () => {
       try {
+        const db = getDbOrThrow(); // ✅ Get database instance once at the start
+        
         const trendingPromise = fetch('/api/discover/trending')
           .then(res => (res.ok ? res.json() : { books: [] }))
           .then(data => data.books || [])
@@ -140,6 +142,8 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
     setItems([]);
 
     try {
+      const db = getDbOrThrow(); // ✅ Get database instance
+      
       const fsQuery = query(
         collection(db, 'books'),
         where('title', '>=', q),
@@ -170,6 +174,8 @@ export default function DiscoverPage({ user }: DiscoverPageProps) {
 
   /* ─────────────── Add Book If Missing ─────────────── */
   async function addBookIfMissing(b: BookItem): Promise<string> {
+    const db = getDbOrThrow(); // ✅ Get database instance
+    
     const slug = slugify(b.title, b.authors?.[0] || b.asin || b.isbn13);
     const ref = doc(db, 'books', slug);
     const snap = await getDoc(ref);

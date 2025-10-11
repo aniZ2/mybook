@@ -1,8 +1,9 @@
 'use client';
+
 import { useMemo, useState } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider'; // ✅ Import useAuth
 
 type PreviewRow = {
   isbn: string;
@@ -56,6 +57,7 @@ function computeDiff(existing: any, incoming: any){
 }
 
 export default function PreviewCSVImport(){
+  const { user } = useAuth(); // ✅ Get user from context
   const [raw, setRaw] = useState('isbn,title,author,genres,mood,pacing\n9780590353427,Harry Potter,J. K. Rowling,children;fantasy,cozy;whimsical,fast');
   const [rows, setRows] = useState<PreviewRow[]|null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,6 +66,11 @@ export default function PreviewCSVImport(){
   const parseLines = () => raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
 
   const preview = async () => {
+    if (!db) {
+      alert('Database not initialized');
+      return;
+    }
+
     setBusy(true);
     const lines = parseLines();
     const out: PreviewRow[] = [];
@@ -120,13 +127,12 @@ export default function PreviewCSVImport(){
   const selectedCount = useMemo(()=> (rows||[]).filter(r=>r.selected && (r.status==='new'||r.status==='update')).length, [rows]);
 
   const writeSelected = async ()=>{
-    if(!rows) return;
+    if(!rows || !db) return;
     setWriting(true);
 
     // Audit "write" action before writes
     try {
-      const u = auth.currentUser;
-      const token = u ? await u.getIdToken(true) : null;
+      const token = user ? await user.getIdToken(true) : null; // ✅ Use user from context
       await fetch('/api/imports/audit', {
         method:'POST',
         headers: { 'content-type':'application/json', ...(token ? { authorization: 'Bearer '+token } : {}) },
@@ -176,8 +182,7 @@ export default function PreviewCSVImport(){
 
   const saveDryRunToAudit = async () => {
     if(!rows) return;
-    const u = auth.currentUser;
-    const token = u ? await u.getIdToken(true) : null;
+    const token = user ? await user.getIdToken(true) : null; // ✅ Use user from context
     await fetch('/api/imports/audit', {
       method:'POST',
       headers: { 'content-type':'application/json', ...(token ? { authorization: 'Bearer '+token } : {}) },

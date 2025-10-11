@@ -13,18 +13,21 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "plugins": [
-      { "name": "next" }
-    ],
+
+    "plugins": [{ "name": "next" }],
+
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@admin/*": ["./src/lib/firebase-admin.ts"]  // ✅ Explicit alias for server-only admin imports
     }
   },
+
   "include": [
     "next-env.d.ts",
     "src/**/*",
     ".next/types/**/*.ts"
   ],
+
   "exclude": [
     "node_modules",
     "functions",

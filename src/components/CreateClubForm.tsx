@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage, auth } from '@/lib/firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { getDbOrThrow, getStorageOrThrow } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider'; // ✅ use global auth context
 import type { ClubDoc } from '@/types/firestore';
 
 const CATEGORIES: ClubDoc['category'][] = [
@@ -33,7 +33,7 @@ const CATEGORY_LABELS: Record<ClubDoc['category'], string> = {
 
 export default function CreateClubForm() {
   const router = useRouter();
-  const [user, loading] = useAuthState(auth);
+  const { user, loading } = useAuth(); // ✅ replaced useAuthState(auth)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -47,7 +47,6 @@ export default function CreateClubForm() {
   const [iconImage, setIconImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [iconPreview, setIconPreview] = useState<string | null>(null);
-
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,55 +72,41 @@ export default function CreateClubForm() {
     }
   };
 
-  const generateSlug = (name: string): string => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-  };
+  const generateSlug = (name: string): string =>
+    name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
   const uploadImage = async (file: File, path: string): Promise<string> => {
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
-  };
+  const storage = getStorageOrThrow(); // ✅ ensures non-null instance
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file);
+  return await getDownloadURL(storageRef);
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!user) {
-      setError('You must be logged in to create a club');
-      return;
-    }
-    if (!formData.name.trim()) {
-      setError('Club name is required');
-      return;
-    }
-    if (!formData.description.trim()) {
-      setError('Description is required');
-      return;
-    }
+    if (!user) return setError('You must be logged in to create a club');
+    if (!formData.name.trim()) return setError('Club name is required');
+    if (!formData.description.trim()) return setError('Description is required');
 
     setSubmitting(true);
     setError(null);
 
     try {
+      const db = getDbOrThrow();
       const slug = generateSlug(formData.name);
 
       let coverUrl: string | null = null;
       let iconUrl: string | null = null;
 
-      if (coverImage) {
+      if (coverImage)
         coverUrl = await uploadImage(coverImage, `clubs/${slug}/cover-${Date.now()}.jpg`);
-      }
-      if (iconImage) {
+      if (iconImage)
         iconUrl = await uploadImage(iconImage, `clubs/${slug}/icon-${Date.now()}.jpg`);
-      }
 
       const tags = formData.tags
         .split(',')
         .map((t) => t.trim())
-        .filter((t) => t.length > 0);
+        .filter(Boolean);
 
       const clubData: Partial<ClubDoc> = {
         name: formData.name.trim(),
@@ -142,7 +127,6 @@ export default function CreateClubForm() {
       };
 
       await setDoc(doc(db, 'clubs', slug), clubData);
-
       await setDoc(doc(db, 'clubs', slug, 'members', user.uid), {
         userId: user.uid,
         userName: user.displayName || 'Anonymous',
@@ -159,20 +143,21 @@ export default function CreateClubForm() {
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
       <div className="panel p-12 text-center">
         <p className="muted">Loading...</p>
       </div>
     );
-  }
 
   if (!user) return null;
 
   return (
     <form onSubmit={handleSubmit} className="form-sections">
       <h1 className="h1 text-center mb-6">Create a Book Club</h1>
-      <p className="muted text-center mb-10">Start your own community and connect with readers who share your interests.</p>
+      <p className="muted text-center mb-10">
+        Start your own community and connect with readers who share your interests.
+      </p>
 
       {error && (
         <div className="panel bg-red-50 border border-red-200 p-4">
@@ -180,9 +165,8 @@ export default function CreateClubForm() {
         </div>
       )}
 
-      {/* Top Row: Cover + Icon */}
+      {/* Cover + Icon uploaders */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Cover Image */}
         <div className="panel p-6">
           <label className="label">Cover Image (Optional)</label>
           {coverPreview ? (
@@ -190,7 +174,10 @@ export default function CreateClubForm() {
               <Image src={coverPreview} alt="Cover preview" fill className="object-cover" />
               <button
                 type="button"
-                onClick={() => { setCoverImage(null); setCoverPreview(null); }}
+                onClick={() => {
+                  setCoverImage(null);
+                  setCoverPreview(null);
+                }}
                 className="absolute top-2 right-2 px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
               >
                 Remove
@@ -201,7 +188,6 @@ export default function CreateClubForm() {
           )}
         </div>
 
-        {/* Icon Image */}
         <div className="panel p-6">
           <label className="label">Club Icon (Optional)</label>
           {iconPreview ? (
@@ -211,7 +197,10 @@ export default function CreateClubForm() {
               </div>
               <button
                 type="button"
-                onClick={() => { setIconImage(null); setIconPreview(null); }}
+                onClick={() => {
+                  setIconImage(null);
+                  setIconPreview(null);
+                }}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
               >
                 Remove
@@ -223,7 +212,7 @@ export default function CreateClubForm() {
         </div>
       </div>
 
-      {/* Club Name */}
+      {/* Form fields */}
       <div className="panel p-6">
         <label className="label">Club Name *</label>
         <input
@@ -236,7 +225,6 @@ export default function CreateClubForm() {
         />
       </div>
 
-      {/* Description */}
       <div className="panel p-6">
         <label className="label">Description *</label>
         <textarea
@@ -249,21 +237,23 @@ export default function CreateClubForm() {
         />
       </div>
 
-      {/* Category */}
       <div className="panel p-6">
         <label className="label">Category *</label>
         <select
           className="input"
           value={formData.category}
-          onChange={(e) => setFormData({ ...formData, category: e.target.value as ClubDoc['category'] })}
+          onChange={(e) =>
+            setFormData({ ...formData, category: e.target.value as ClubDoc['category'] })
+          }
         >
           {CATEGORIES.map((c) => (
-            <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
+            <option key={c} value={c}>
+              {CATEGORY_LABELS[c]}
+            </option>
           ))}
         </select>
       </div>
 
-      {/* Tags */}
       <div className="panel p-6">
         <label className="label">Tags (comma-separated)</label>
         <input
@@ -275,7 +265,6 @@ export default function CreateClubForm() {
         />
       </div>
 
-      {/* Privacy */}
       <div className="panel p-6">
         <label className="flex items-center gap-2">
           <input
@@ -287,7 +276,6 @@ export default function CreateClubForm() {
         </label>
       </div>
 
-      {/* Buttons */}
       <div className="flex gap-4 mt-6">
         <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>
           {submitting ? 'Creating Club…' : 'Create Club'}
