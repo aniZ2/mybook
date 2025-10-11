@@ -14,13 +14,34 @@ const isBrowser = typeof window !== 'undefined';
 // ─────────────────────────────
 // 🔥 Firebase Client SDK Initialization
 // ─────────────────────────────
+
+// Validate environment variables
+const requiredEnvVars = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+// Check for missing vars
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([_, value]) => !value)
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing Firebase environment variables:', missingVars);
+  throw new Error(`Missing required Firebase config: ${missingVars.join(', ')}`);
+}
+
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
+  apiKey: requiredEnvVars.apiKey!,
+  authDomain: requiredEnvVars.authDomain!,
+  projectId: requiredEnvVars.projectId!,
+  storageBucket: requiredEnvVars.storageBucket!,
+  messagingSenderId: requiredEnvVars.messagingSenderId!,
+  appId: requiredEnvVars.appId!,
 };
 
 let app: FirebaseApp;
@@ -29,15 +50,16 @@ let db: Firestore | null = null;
 let storage: FirebaseStorage | null = null;
 let functions: Functions | null = null;
 
-// Initialize app
-app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-
-// Only attach services in the browser
+// Initialize only in browser
 if (isBrowser) {
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
   functions = getFunctions(app, 'us-central1');
+} else {
+  // Create a dummy app for server-side (won't be used)
+  app = {} as FirebaseApp;
 }
 
 // ─────────────────────────────
@@ -50,7 +72,7 @@ const ALGOLIA_INDEX_NAME = process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME ?? 'books'
 let algoliaClient: SearchClient | null = null;
 let algoliaIndex: SearchIndex | null = null;
 
-if (ALGOLIA_APP_ID && ALGOLIA_SEARCH_KEY) {
+if (isBrowser && ALGOLIA_APP_ID && ALGOLIA_SEARCH_KEY) {
   algoliaClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
   algoliaIndex = algoliaClient.initIndex(ALGOLIA_INDEX_NAME);
 }
@@ -59,17 +81,17 @@ if (ALGOLIA_APP_ID && ALGOLIA_SEARCH_KEY) {
 // ✅ Safe Getters
 // ─────────────────────────────
 export function getDbOrThrow(): Firestore {
-  if (!db) throw new Error('❌ Firestore not initialized.');
+  if (!db) throw new Error('❌ Firestore not initialized. Are you calling this on the server?');
   return db;
 }
 
 export function getAuthOrThrow(): Auth {
-  if (!auth) throw new Error('❌ Firebase Auth not initialized.');
+  if (!auth) throw new Error('❌ Firebase Auth not initialized. Are you calling this on the server?');
   return auth;
 }
 
 export function getStorageOrThrow(): FirebaseStorage {
-  if (!storage) throw new Error('❌ Firebase Storage not initialized.');
+  if (!storage) throw new Error('❌ Firebase Storage not initialized. Are you calling this on the server?');
   return storage;
 }
 

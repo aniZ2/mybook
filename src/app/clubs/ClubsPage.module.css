@@ -30,7 +30,7 @@
   left: -150px;
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(236, 72, 153, 0.3), transparent);
+  background: radial-gradient(circle, rgb(89, 155, 3), transparent);
   filter: blur(80px);
   animation: float 20s ease-in-out infinite;
   pointer-events: none;
@@ -65,7 +65,7 @@
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 2.5rem;
   font-weight: 800;
-  color: #fda4af;
+  color: hsl(204, 76.40%, 48.20%);
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -75,7 +75,7 @@
 }
 
 .sparkleIcon {
-  color: #f472b6;
+  color: hsl(204, 76.40%, 48.20%);
 }
 
 .subtitle {
@@ -90,7 +90,7 @@
 }
 
 .createBtn {
-  background: linear-gradient(135deg, #ec4899, #f472b6);
+  background: linear-gradient(135deg, hsl(204, 76.40%, 48.20%), hsl(204, 76.40%, 48.20%));
   color: #fff;
   padding: 0.9rem 2rem;
   border-radius: 12px;
@@ -104,7 +104,7 @@
 }
 
 .createBtn:hover {
-  background: linear-gradient(135deg, #db2777, #ec4899);
+  background: linear-gradient(135deg, hsl(204, 76.40%, 48.20%), hsl(204, 76.40%, 48.20%));
   transform: translateY(-3px);
   box-shadow: 0 8px 30px rgba(236, 72, 153, 0.5);
 }
@@ -178,7 +178,7 @@
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 1.3rem;
   font-weight: 700;
-  color: #fda4af;
+  color: hsl(204, 76.40%, 48.20%);
   letter-spacing: -0.3px;
 }
 
@@ -257,7 +257,7 @@
 }
 
 .newPostButton {
-  background: linear-gradient(135deg, #ec4899, #f472b6);
+  background: linear-gradient(135deg, hsl(204, 76.40%, 48.20%), hsl(204, 76.40%, 48.20%));
   border: none;
   border-radius: 12px;
   color: #fff;
@@ -271,7 +271,7 @@
 .newPostButton:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 30px rgba(236, 72, 153, 0.5);
-  background: linear-gradient(135deg, #db2777, #ec4899);
+  background: linear-gradient(135deg, hsl(204, 76.40%, 48.20%), hsl(204, 76.40%, 48.20%));
 }
 
 /* ───────── Sidebar Area - Elegant Cards ───────── */
@@ -302,7 +302,7 @@
 .featuredBookCard h3 {
   font-family: 'Playfair Display', serif;
   font-weight: 700;
-  color: #fda4af;
+  color: hsl(204, 76.40%, 48.20%);
   margin-bottom: 1rem;
   font-size: 1.1rem;
 }
