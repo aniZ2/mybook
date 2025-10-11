@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getDbOrThrow, getStorageOrThrow } from '@/lib/firebase';
@@ -43,9 +42,7 @@ export default function CreateClubForm() {
     tags: '',
   });
 
-  const [coverImage, setCoverImage] = useState<File | null>(null);
   const [iconImage, setIconImage] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [iconPreview, setIconPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,14 +52,6 @@ export default function CreateClubForm() {
       router.push('/login?redirect=/clubs/create');
     }
   }, [user, loading, router]);
-
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCoverImage(file);
-      setCoverPreview(URL.createObjectURL(file));
-    }
-  };
 
   const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,12 +96,8 @@ export default function CreateClubForm() {
       const db = getDbOrThrow();
       const slug = generateSlug(formData.name);
 
-      let coverUrl: string | null = null;
       let iconUrl: string | null = null;
 
-      if (coverImage) {
-        coverUrl = await uploadImage(coverImage, `clubs/${slug}/cover-${Date.now()}.jpg`);
-      }
       if (iconImage) {
         iconUrl = await uploadImage(iconImage, `clubs/${slug}/icon-${Date.now()}.jpg`);
       }
@@ -128,13 +113,12 @@ export default function CreateClubForm() {
         description: formData.description.trim(),
         category: formData.category,
         isPublic: formData.isPublic,
-        coverUrl,
         iconUrl,
         ownerUid: user.uid,
         creatorName: user.displayName || 'Anonymous',
         membersCount: 1,
         booksCount: 0,
-        memberIds: [user.uid], // ✅ Add this for join functionality
+        memberIds: [user.uid],
         tags: tags.length > 0 ? tags : undefined,
         theme: { primary: '#3B82F6', secondary: '#8B5CF6' },
         createdAt: serverTimestamp(),
@@ -180,51 +164,28 @@ export default function CreateClubForm() {
         </div>
       )}
 
-      {/* Cover + Icon uploaders */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="panel p-6">
-          <label className="label">Cover Image (Optional)</label>
-          {coverPreview ? (
-            <div style={{ position: 'relative', height: '160px' }} className="rounded-lg overflow-hidden mt-3">
-              <Image src={coverPreview} alt="Cover preview" fill className="object-cover" />
-              <button
-                type="button"
-                onClick={() => {
-                  setCoverImage(null);
-                  setCoverPreview(null);
-                }}
-                className="absolute top-2 right-2 px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
-              >
-                Remove
-              </button>
+      {/* Club Icon */}
+      <div className="panel p-6">
+        <label className="label">Club Icon (Optional)</label>
+        {iconPreview ? (
+          <div className="flex items-center gap-4 mt-3">
+            <div style={{ position: 'relative', width: '80px', height: '80px' }} className="rounded-full overflow-hidden">
+              <img src={iconPreview} alt="Icon preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
-          ) : (
-            <input type="file" accept="image/*" onChange={handleCoverChange} className="mt-3" />
-          )}
-        </div>
-
-        <div className="panel p-6">
-          <label className="label">Club Icon (Optional)</label>
-          {iconPreview ? (
-            <div className="flex items-center gap-4 mt-3">
-              <div style={{ position: 'relative', width: '80px', height: '80px' }} className="rounded-full overflow-hidden">
-                <Image src={iconPreview} alt="Icon preview" fill className="object-cover" />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIconImage(null);
-                  setIconPreview(null);
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
-              >
-                Remove
-              </button>
-            </div>
-          ) : (
-            <input type="file" accept="image/*" onChange={handleIconChange} className="mt-3" />
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIconImage(null);
+                setIconPreview(null);
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <input type="file" accept="image/*" onChange={handleIconChange} className="mt-3" />
+        )}
       </div>
 
       {/* Form fields */}
@@ -291,11 +252,21 @@ export default function CreateClubForm() {
         </label>
       </div>
 
-      <div className="flex gap-4 mt-6">
-        <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '24px', width: '100%' }}>
+        <button 
+          type="submit" 
+          className="btn btn-primary" 
+          disabled={submitting}
+          style={{ minWidth: '140px', maxWidth: '200px', padding: '8px 32px' }}
+        >
           {submitting ? 'Creating Club…' : 'Create Club'}
         </button>
-        <button type="button" onClick={() => router.back()} className="btn flex-1">
+        <button 
+          type="button" 
+          onClick={() => router.back()} 
+          className="btn"
+          style={{ minWidth: '140px', maxWidth: '200px', padding: '8px 32px' }}
+        >
           Cancel
         </button>
       </div>

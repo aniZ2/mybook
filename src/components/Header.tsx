@@ -63,33 +63,31 @@ export default function Header() {
       </nav>
 
       {/* ───── Mobile Menu ───── */}
-      {open && (
-        <div className={styles.mobileMenu}>
-          <Link href="/discover" onClick={() => setOpen(false)}>Discover</Link>
-          <Link href="/clubs" onClick={() => setOpen(false)}>Clubs</Link>
-          <Link href="/authors" onClick={() => setOpen(false)}>Authors</Link>
-          <Link href="/deals" onClick={() => setOpen(false)}>Deals</Link>
+      <div className={`${styles.mobileMenu} ${open ? styles.mobileMenuOpen : ''}`}>
+        <Link href="/discover" onClick={() => setOpen(false)}>Discover</Link>
+        <Link href="/clubs" onClick={() => setOpen(false)}>Clubs</Link>
+        <Link href="/authors" onClick={() => setOpen(false)}>Authors</Link>
+        <Link href="/deals" onClick={() => setOpen(false)}>Deals</Link>
 
-          {!loading && (
-            <>
-              {user ? (
-                <>
-                  <Link href="/account" onClick={() => setOpen(false)}>Account</Link>
-                  <button onClick={handleLogout} className={styles.signOutBtn}>
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" onClick={() => setOpen(false)} className={styles.signupBtn}>
-                    Login
-                  </Link>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      )}
+        {!loading && (
+          <>
+            {user ? (
+              <>
+                <Link href="/account" onClick={() => setOpen(false)}>Account</Link>
+                <button onClick={handleLogout} className={styles.signOutBtn}>
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" onClick={() => setOpen(false)} className={styles.signupBtn}>
+                  Login
+                </Link>
+              </>
+            )}
+          </>
+        )}
+      </div>
     </header>
   );
 }
