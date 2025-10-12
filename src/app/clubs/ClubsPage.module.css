@@ -367,3 +367,25 @@
     padding: 1rem;
   }
 }
+/* Add this if not already present */
+@media (max-width: 768px) {
+  .redditLayout {
+    display: flex;
+    flex-direction: column;
+    padding: 0 0.75rem;
+  }
+
+  .headerContainer {
+    margin: 0 -0.75rem 1rem;
+    padding: 0;
+  }
+
+  .sidebarArea {
+    order: 2; /* Sidebar below header but above feed */
+    margin-bottom: 1rem;
+  }
+
+  .feedArea {
+    order: 3;
+  }
+}

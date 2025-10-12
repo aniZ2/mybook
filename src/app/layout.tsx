@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { AuthProvider } from "@/context/AuthProvider"; // ✅ FIXED PATH
+import { AuthProvider } from "@/context/AuthProvider";
 import Header from "@/components/Header";
 
 export const dynamic = 'force-dynamic';
@@ -10,13 +10,20 @@ export const fetchCache = 'force-no-store';
 export const metadata: Metadata = {
   title: "Booklyverse",
   description: "A social library for readers & authors",
+  manifest: '/manifest.json',
+  themeColor: '#0f172a',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Booklyverse',
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
-  initialScale: 1.0,
-  maximumScale: 1.0,
-  userScalable: false,
+  initialScale: 1,
+  maximumScale: 5, // ✅ Changed from 1.0 to allow zoom
+  userScalable: true, // ✅ Changed to true for accessibility
 };
 
 export default function RootLayout({
@@ -26,8 +33,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      {/* ✅ Proper head element */}
-      <head></head>
       <body>
         <AuthProvider>
           <Header />

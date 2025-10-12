@@ -5,6 +5,16 @@ import styles from './Club.module.css';
 import { Users, BookOpen, Calendar, TrendingUp } from 'lucide-react';
 
 export default function ClubSidebar({ club }: { club: any }) {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Recently';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    } catch {
+      return 'Recently';
+    }
+  };
+
   return (
     <aside className={styles.sidebar}>
       <h3 className={styles.sidebarTitle}>About This Club</h3>
@@ -28,7 +38,7 @@ export default function ClubSidebar({ club }: { club: any }) {
           </li>
           <li>
             <Calendar size={16} />
-            <span>Created {new Date(club.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+            <span>Created {formatDate(club.createdAt)}</span>
           </li>
           <li>
             <TrendingUp size={16} />
@@ -37,12 +47,14 @@ export default function ClubSidebar({ club }: { club: any }) {
         </ul>
       </div>
 
-      <div className={styles.sidebarSection}>
-        <h4 className={styles.sidebarSubtitle}>Category</h4>
-        <span className={styles.categoryBadge}>
-          {club.category || 'General'}
-        </span>
-      </div>
+      {club.category && (
+        <div className={styles.sidebarSection}>
+          <h4 className={styles.sidebarSubtitle}>Category</h4>
+          <span className={styles.categoryBadge}>
+            {club.category}
+          </span>
+        </div>
+      )}
     </aside>
   );
 }
