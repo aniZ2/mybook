@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbAdmin } from "@/lib/firebase-admin";
+import { getAuth } from "firebase-admin/auth"; // Add this import
 
 /**
  * Recursively serialize Firestore/Admin Timestamp fields to ISO strings
@@ -41,6 +42,20 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
       return NextResponse.json({ success: false, error: "Admin SDK missing" }, { status: 500 });
     }
 
+    // ✅ Get current user from Authorization header
+    let currentUserId: string | null = null;
+    const authHeader = req.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const token = authHeader.substring(7);
+        const decodedToken = await getAuth().verifyIdToken(token);
+        currentUserId = decodedToken.uid;
+        console.log("👤 Authenticated user:", currentUserId);
+      } catch (err) {
+        console.warn("⚠️ Invalid auth token:", err);
+      }
+    }
+
     const clubRef = dbAdmin.collection("clubs").doc(slug);
     const clubSnap = await clubRef.get();
     console.log("📄 clubSnap.exists:", clubSnap.exists);
@@ -69,6 +84,19 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
       "📢 announcements:", announcementsSnap.size
     );
 
+    // ✅ Process posts with upvote status
+    const posts = postsSnap.docs.map((d) => {
+      const postData = d.data();
+      const upvotedBy = postData.upvotedBy || [];
+      return {
+        id: d.id,
+        slug: d.id, // Use document ID as slug
+        clubSlug: slug, // Add club slug
+        ...serialize(postData),
+        hasUpvoted: currentUserId ? upvotedBy.includes(currentUserId) : false,
+      };
+    });
+
     // ✅ APPLY SERIALIZATION HERE
     return NextResponse.json(
       {
@@ -76,7 +104,7 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
         club: serialize(clubData),
         books: booksSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
         members: membersSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
-        posts: postsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
+        posts, // Use the processed posts
         events: eventsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
         announcements: announcementsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
       },

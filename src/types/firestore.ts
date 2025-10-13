@@ -47,7 +47,7 @@ export interface AuthorDoc {
 /* ─────────── BookDoc ─────────── */
 export interface BookDoc {
   /** Core identity */
-  id?: string;             // Firestore slug or generated ID
+  id?: string;
   slug: string;
   title: string;
 
@@ -58,15 +58,15 @@ export interface BookDoc {
 
   /** External sources */
   source?: 'google' | 'openlibrary' | 'isbndb' | 'manual' | null;
-  sourceId?: string | null; // e.g. /works/OL27448W or Google ID
-  asin?: string | null;     // 🆕 For Amazon-exclusive books
+  sourceId?: string | null;
+  asin?: string | null;
 
   /** Media & Links */
   coverUrl?: string | null;
-  buyLink?: string | null;      // Amazon (primary)
-  bnLink?: string | null;       // Barnes & Noble
-  googleLink?: string | null;   // Google Books preview
-  previewLink?: string | null;  // General preview (optional)
+  buyLink?: string | null;
+  bnLink?: string | null;
+  googleLink?: string | null;
+  previewLink?: string | null;
 
   /** Metadata */
   publisher?: string | null;
@@ -85,6 +85,8 @@ export interface BookDoc {
   likesCount?: number;
   commentsCount?: number;
   savesCount?: number;
+  clubsReading?: string[];  // ✨ Array of club slugs reading this book
+  totalClubsCount?: number; // ✨ Counter for clubs reading
 
   /** Timestamps */
   createdAt?: FirestoreDate;
@@ -96,15 +98,19 @@ export interface BookDoc {
 /* ─────────── PostDoc ─────────── */
 export interface PostDoc {
   id: string;
+  slug: string;
   userId: string;
   userName: string;
   userPhoto?: string | null;
   bookRef?: string | null;
+  bookId?: string | null;        // ✨ Reference to book being discussed (book slug)
   content: string;
   imageUrl?: string | null;
   likesCount: number;
   commentsCount: number;
   savesCount: number;
+  upvotedBy?: string[];
+  isPublic?: boolean;            // ✨ Can appear on book page (default: false)
   tags?: string[];
   visibility: 'public' | 'followers' | 'private';
   createdAt?: FirestoreDate;
@@ -135,6 +141,10 @@ export interface ClubDoc {
   membersCount: number;
   memberIds?: string[];
   booksCount: number;
+  currentBookId?: string;        // ✨ Currently reading book (book slug)
+  pastBookIds?: string[];        // ✨ Past books (array of book slugs)
+  isPrivate?: boolean;           // ✨ Privacy setting (default: false)
+  allowPublicPosts?: boolean;    // ✨ Allow members to share posts publicly (default: true)
   category:
     | 'fiction'
     | 'non-fiction'

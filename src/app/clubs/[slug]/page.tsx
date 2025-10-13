@@ -5,9 +5,9 @@ import { motion } from 'framer-motion';
 import ClubHeader from '@/components/ClubHeader';
 import ClubFeed from '@/components/ClubFeed';
 import ClubSpotlight from '@/components/ClubSpotlight';
-import ClubSidebar from '@/components/ClubSidebar';
-import ClubBooks from '@/components/ClubBooks'; // ✅ Add this import
+import ClubBooks from '@/components/ClubBooks';
 import { useAuth } from '@/context/AuthProvider';
+import { Send, X } from 'lucide-react';
 import styles from '../ClubsPage.module.css';
 
 interface Club {
@@ -21,7 +21,9 @@ interface Club {
   category?: string;
   createdAt?: string;
   memberIds?: string[];
-  ownerUid?: string; // ✅ Add this
+  ownerUid?: string;
+  currentBookId?: string;
+  pastBookIds?: string[];
 }
 
 interface Event {
@@ -46,28 +48,45 @@ interface ClubData {
   announcements?: Announcement[];
 }
 
-export default function ClubsPage({ params }: { params: { slug: string } }) {
+export default function ClubDetailPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   const { user } = useAuth();
   const [clubData, setClubData] = useState<ClubData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [postContent, setPostContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [refreshBooks, setRefreshBooks] = useState(0);
+
+  const fetchClubData = async () => {
+    try {
+      const headers: HeadersInit = {};
+      if (user) {
+        const token = await (user as any).getIdToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`/api/clubs/${slug}`, { headers });
+      if (!res.ok) throw new Error('Club not found');
+      const data = await res.json();
+      
+      console.log('📊 Fetched club data:', {
+        currentBookId: data.club?.currentBookId,
+        pastBookIds: data.club?.pastBookIds,
+        booksCount: data.club?.booksCount
+      });
+      
+      setClubData(data);
+    } catch (err) {
+      console.error('Error fetching club data:', err);
+      setClubData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`/api/clubs/${slug}`);
-        if (!res.ok) throw new Error('Club not found');
-        const data = await res.json();
-        console.log('📊 Club data:', data);
-        console.log('👤 Current user:', user?.uid);
-        setClubData(data);
-      } catch (err) {
-        console.error('Error fetching club data:', err);
-        setClubData(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchClubData();
   }, [slug, user]);
 
   const handleJoinSuccess = (newMemberCount: number) => {
@@ -83,16 +102,49 @@ export default function ClubsPage({ params }: { params: { slug: string } }) {
     }
   };
 
-  // ✅ Add this function to refresh club data after adding a book
   const handleBookAdded = async () => {
+    console.log('📚 Book added, refreshing data...');
+    await fetchClubData();
+    setRefreshBooks(prev => prev + 1);
+  };
+
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      alert('Please sign in to create a post');
+      return;
+    }
+
+    if (!postContent.trim()) return;
+
+    setSubmitting(true);
+
     try {
-      const res = await fetch(`/api/clubs/${slug}`);
-      if (res.ok) {
-        const data = await res.json();
-        setClubData(data);
+      const token = await (user as any).getIdToken();
+      
+      const response = await fetch(`/api/clubs/${slug}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content: postContent.trim() }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create post');
       }
-    } catch (err) {
-      console.error('Error refreshing club data:', err);
+
+      setPostContent('');
+      setShowCreatePost(false);
+      await fetchClubData();
+    } catch (error) {
+      console.error('Error creating post:', error);
+      alert(error instanceof Error ? error.message : 'Failed to create post');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -117,7 +169,7 @@ export default function ClubsPage({ params }: { params: { slug: string } }) {
 
   return (
     <main className={styles.redditLayout}>
-      {/* ───── Sticky Club Header ───── */}
+      {/* Sticky Club Header */}
       <motion.div
         className={styles.headerContainer}
         initial={{ opacity: 0, y: -10 }}
@@ -128,41 +180,123 @@ export default function ClubsPage({ params }: { params: { slug: string } }) {
           club={club} 
           currentUserId={user?.uid}
           onJoinSuccess={handleJoinSuccess}
-          onBookAdded={handleBookAdded} // ✅ Add this
+          onBookAdded={handleBookAdded}
         />
       </motion.div>
 
-      {/* ───── Main Feed ───── */}
-      <section className={styles.feedArea}>
-        {/* ✅ Add the books section */}
-        <ClubBooks clubSlug={slug} />
+      {/* Content Wrapper */}
+      <div className={styles.contentWrapper}>
+        {/* Main Feed Area */}
+        <section className={styles.feedArea}>
+          <ClubBooks 
+            clubSlug={slug}
+            key={refreshBooks}
+          />
 
-        {/* Existing feed */}
-        {posts.length > 0 ? (
-          <ClubFeed posts={posts} />
-        ) : (
-          <motion.div
-            className={styles.emptyFeed}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <h3>No posts yet 👀</h3>
-            <p>Be the first to share something uplifting today ✨</p>
-            <button className={styles.newPostButton}>+ Create a Post</button>
-          </motion.div>
+          {/* Create Post Section */}
+          {user && (
+            <motion.div
+              className={styles.createPostCard}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {!showCreatePost ? (
+                <button
+                  className={styles.createPostButton}
+                  onClick={() => setShowCreatePost(true)}
+                >
+                  <div className={styles.userAvatar}>
+                    {user.displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  <span className={styles.createPostPlaceholder}>
+                    Share something with the club...
+                  </span>
+                </button>
+              ) : (
+                <form className={styles.createPostForm} onSubmit={handleCreatePost}>
+                  <div className={styles.createPostHeader}>
+                    <h3>Create a Post</h3>
+                    <button
+                      type="button"
+                      className={styles.closeButton}
+                      onClick={() => {
+                        setShowCreatePost(false);
+                        setPostContent('');
+                      }}
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <textarea
+                    className={styles.createPostTextarea}
+                    placeholder="What's on your mind?"
+                    value={postContent}
+                    onChange={(e) => setPostContent(e.target.value)}
+                    rows={5}
+                    disabled={submitting}
+                    autoFocus
+                  />
+                  <div className={styles.createPostActions}>
+                    <button
+                      type="button"
+                      className={styles.cancelButton}
+                      onClick={() => {
+                        setShowCreatePost(false);
+                        setPostContent('');
+                      }}
+                      disabled={submitting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className={styles.submitPostButton}
+                      disabled={!postContent.trim() || submitting}
+                    >
+                      <Send size={16} />
+                      {submitting ? 'Posting...' : 'Post'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          )}
+
+          {/* Feed */}
+          {posts.length > 0 ? (
+            <ClubFeed posts={posts} />
+          ) : (
+            <motion.div
+              className={styles.emptyFeed}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h3>No posts yet 👀</h3>
+              <p>Be the first to share something uplifting today ✨</p>
+              {user && !showCreatePost && (
+                <button 
+                  className={styles.newPostButton}
+                  onClick={() => setShowCreatePost(true)}
+                >
+                  + Create a Post
+                </button>
+              )}
+            </motion.div>
+          )}
+        </section>
+
+        {/* Sidebar - Only Events/Announcements */}
+        {((events && events.length > 0) || (announcements && announcements.length > 0)) && (
+          <aside className={styles.sidebarArea}>
+            <ClubSpotlight 
+              events={events}
+              announcements={announcements}
+            />
+          </aside>
         )}
-      </section>
-
-      {/* ───── Sidebar ───── */}
-      <aside className={styles.sidebarArea}>
-        <ClubSidebar club={club} />
-        
-        <ClubSpotlight 
-          events={events}
-          announcements={announcements}
-        />
-      </aside>
+      </div>
     </main>
   );
 }

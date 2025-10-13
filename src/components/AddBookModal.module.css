@@ -1,3 +1,4 @@
+/* ─────────────── Overlay ─────────────── */
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -12,6 +13,7 @@
   backdrop-filter: blur(4px);
 }
 
+/* ─────────────── Modal Content ─────────────── */
 .modalContent {
   background: white;
   border-radius: 16px;
@@ -21,8 +23,10 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
+/* ─────────────── Header ─────────────── */
 .modalHeader {
   display: flex;
   justify-content: space-between;
@@ -53,9 +57,11 @@
   color: #111827;
 }
 
+/* ─────────────── Search Section ─────────────── */
 .searchSection {
   padding: 24px;
   border-bottom: 1px solid #e5e7eb;
+  background: #fff;
 }
 
 .searchBar {
@@ -106,6 +112,67 @@
   cursor: not-allowed;
 }
 
+/* ─────────────── Toggle: Set as Currently Reading ─────────────── */
+.currentlyReadingToggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.currentlyReadingToggle:hover {
+  background: #f3f4f6;
+}
+
+.currentlyReadingToggle label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  color: #111827;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Switch style */
+.currentlyReadingToggle input[type="checkbox"] {
+  appearance: none;
+  width: 42px;
+  height: 24px;
+  background: #d1d5db;
+  border-radius: 9999px;
+  position: relative;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.currentlyReadingToggle input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.currentlyReadingToggle input[type="checkbox"]:checked {
+  background: #3b82f6;
+}
+
+.currentlyReadingToggle input[type="checkbox"]:checked::before {
+  transform: translateX(18px);
+}
+
+/* ─────────────── Results Section ─────────────── */
 .resultsSection {
   flex: 1;
   overflow-y: auto;
@@ -128,6 +195,7 @@
   margin-bottom: 16px;
 }
 
+/* ─────────────── Book List ─────────────── */
 .bookList {
   display: flex;
   flex-direction: column;
@@ -183,6 +251,7 @@
   color: #9ca3af;
 }
 
+/* ─────────────── Add Button ─────────────── */
 .addButton {
   display: flex;
   align-items: center;

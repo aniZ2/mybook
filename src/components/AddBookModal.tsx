@@ -25,6 +25,7 @@ export default function AddBookModal({ isOpen, onClose, clubSlug, currentUserId,
   const [searchResults, setSearchResults] = useState<Book[]>([]);
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [setAsCurrentlyReading, setSetAsCurrentlyReading] = useState(false); // NEW
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -76,6 +77,7 @@ export default function AddBookModal({ isOpen, onClose, clubSlug, currentUserId,
           coverUrl: book.coverUrl,
           isbn: book.isbn,
           userId: currentUserId,
+          setAsCurrentlyReading, // NEW
         }),
       });
 
@@ -126,6 +128,18 @@ export default function AddBookModal({ isOpen, onClose, clubSlug, currentUserId,
             >
               {searching ? 'Searching...' : 'Search'}
             </button>
+          </div>
+          
+          {/* NEW: Currently Reading Toggle */}
+          <div className={styles.currentlyReadingToggle}>
+            <label>
+              <input
+                type="checkbox"
+                checked={setAsCurrentlyReading}
+                onChange={(e) => setSetAsCurrentlyReading(e.target.checked)}
+              />
+              <span>Set as currently reading</span>
+            </label>
           </div>
         </div>
 

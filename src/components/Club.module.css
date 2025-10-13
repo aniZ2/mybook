@@ -1,5 +1,16 @@
 /* ═══════════════════════════════════════════════════════════
-   📚 Literary Lounge - Club Header
+   📚 CLUB PAGE STYLES
+   - Header
+   - Feed & Posts
+   - Comments (Inline)
+   - Sidebar
+   - Spotlight (Events & Announcements)
+   - Books Grid
+   - Utilities
+═══════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════
+   CLUB HEADER
 ═══════════════════════════════════════════════════════════ */
 
 .literaryLoungeHeader {
@@ -9,7 +20,7 @@
   overflow: hidden;
 }
 
-/* 🌈 Ambient Background */
+/* Ambient Background */
 .ambientBackground {
   position: absolute;
   inset: 0;
@@ -56,7 +67,7 @@
   66% { transform: translate(-20px, 20px) scale(0.9); }
 }
 
-/* ❄️ Frosted Glass */
+/* Frosted Glass */
 .frostedContainer {
   position: relative;
   height: 100%;
@@ -66,7 +77,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* 🧱 Layout */
+/* Header Layout */
 .headerContent {
   max-width: 1400px;
   margin: 0 auto;
@@ -85,7 +96,7 @@
   flex: 1;
 }
 
-/* 🖼 Club Icon */
+/* Club Icon */
 .clubIconWrapper { 
   flex-shrink: 0; 
 }
@@ -118,7 +129,7 @@
   fill: #fda4af;
 }
 
-/* ✍️ Text Block */
+/* Club Info */
 .clubInfo { 
   flex: 1; 
 }
@@ -176,7 +187,7 @@
   font-weight: 500;
 }
 
-/* 👥 Actions */
+/* Club Actions */
 .clubActions {
   display: flex;
   align-items: center;
@@ -247,7 +258,7 @@
   }
 }
 
-/* ❤️ Join Button */
+/* Join Button */
 .joinButton {
   padding: 14px 32px;
   background: linear-gradient(135deg, hsl(204, 76.40%, 48.20%), hsl(204, 76.40%, 48.20%));
@@ -274,12 +285,17 @@
   transform: translateY(0);
 }
 
+.joinButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .joinIcon {
   width: 18px;
   height: 18px;
 }
 
-/* ✅ Member Badge (for joined users) */
+/* Member Badge (for joined users) */
 .memberBadge {
   display: flex;
   align-items: center;
@@ -291,6 +307,12 @@
   border-radius: 12px;
   font-size: 15px;
   box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.memberBadge:hover {
+  opacity: 0.8;
 }
 
 .memberIcon {
@@ -298,41 +320,35 @@
   height: 18px;
 }
 
-/* 📱 Responsive */
-@media (max-width: 1024px) {
-  .headerContent { 
-    padding: 0 32px; 
-  }
-  
-  .clubName { 
-    font-size: 28px; 
-  }
+/* Add Book Button (for admins) */
+.addBookButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
 }
 
-@media (max-width: 768px) {
-  .literaryLoungeHeader {
-    height: auto;
-    min-height: 200px;
-  }
-  
-  .headerContent {
-    flex-direction: column;
-    padding: 32px 24px;
-    align-items: flex-start;
-  }
-  
-  .clubActions {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .memberCircle { 
-    align-items: flex-start; 
-  }
+.addBookButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+}
+
+.addBookButton:active {
+  transform: translateY(0);
 }
 
 /* ═══════════════════════════════════════════════════════════
-   📚 Literary Lounge - Feed
+   FEED & POSTS
 ═══════════════════════════════════════════════════════════ */
 
 .feed {
@@ -354,23 +370,7 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-/* 📱 Responsive */
-@media (max-width: 1024px) {
-  .feed {
-    padding: 1.5rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .feed {
-    padding: 1rem;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   📚 Literary Lounge - Post Card
-═══════════════════════════════════════════════════════════ */
-
+/* Post Card */
 .card {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -390,13 +390,12 @@
   box-shadow: 0 8px 30px rgba(236, 72, 153, 0.15);
 }
 
-/* Card Inner Container */
 .cardInner {
   display: flex;
   gap: 0;
 }
 
-/* Upvote Section (Left Side) */
+/* Upvote Section */
 .upvoteSection {
   display: flex;
   flex-direction: column;
@@ -440,7 +439,7 @@
   color: #fff;
 }
 
-/* Post Content (Right Side) */
+/* Post Content */
 .postContent {
   flex: 1;
   padding: 20px 24px;
@@ -487,16 +486,6 @@
   margin: 0;
 }
 
-.authorBadge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: rgba(236, 72, 153, 0.15);
-  border: 1px solid rgba(236, 72, 153, 0.3);
-  color: #f472b6;
-  width: fit-content;
-}
-
 .date {
   color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
@@ -518,6 +507,10 @@
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.likesDisplay {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .footerBtn {
   display: flex;
   align-items: center;
@@ -536,22 +529,251 @@
   background: rgba(236, 72, 153, 0.1);
 }
 
-/* 📱 Responsive */
-@media (max-width: 768px) {
-  .cardInner {
-    flex-direction: column;
-  }
+/* ═══════════════════════════════════════════════════════════
+   COMMENTS (INLINE)
+═══════════════════════════════════════════════════════════ */
 
-  .upvoteSection {
-    flex-direction: row;
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 12px 16px;
+.commentsExpanded {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
   }
 }
 
+.commentsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.commentsHeader h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.commentForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.commentInputWrapper {
+  display: flex;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.userAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.commentInput {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transition: border-color 0.2s;
+}
+
+.commentInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.commentInput:focus {
+  outline: none;
+  border-color: hsl(204, 76.40%, 48.20%);
+}
+
+.commentInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.submitBtn {
+  align-self: flex-end;
+  padding: 0.5rem 1rem;
+  background: hsl(204, 76.40%, 48.20%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #1879c9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.commentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.commentsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.commentsList::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.commentsList::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.commentsList::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.comment {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.comment:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.commentAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.commentBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.commentAuthor {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.commentDate {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.commentContent {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.noComments,
+.signInPrompt {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  padding: 1.5rem;
+}
+
+.signInPrompt {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
 /* ═══════════════════════════════════════════════════════════
-   📚 Literary Lounge - Sidebar
+   SIDEBAR
 ═══════════════════════════════════════════════════════════ */
 
 .sidebar {
@@ -571,63 +793,76 @@
   border-color: rgba(236, 72, 153, 0.2);
 }
 
+.sidebarSection {
+  margin-bottom: 1.5rem;
+}
+
+.sidebarSection:last-child {
+  margin-bottom: 0;
+}
+
 .sidebarTitle {
   font-family: 'Playfair Display', Georgia, serif;
   font-weight: 700;
   color: hsl(204, 76.40%, 48.20%);
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
+  margin-bottom: 1.25rem;
+  font-size: 1.25rem;
+}
+
+.sidebarSubtitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.875rem;
+}
+
+.sidebarDescription {
+  color: #cbd5e1;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  margin: 0;
 }
 
 .sidebarList {
   list-style: none;
   padding: 0;
   margin: 0;
-  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .sidebarList li {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding: 8px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.sidebarList li:hover {
-  background: rgba(236, 72, 153, 0.1);
-  color: #fda4af;
-}
-
-.sidebarCategory {
-  margin-top: 1.5rem;
-  color: rgba(255, 255, 255, 0.5);
+  gap: 0.75rem;
+  color: #e2e8f0;
   font-size: 0.9rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-/* 📱 Responsive */
-@media (max-width: 1024px) {
-  .sidebar {
-    margin: 0 1.5rem 1.5rem;
-  }
+.sidebarList li svg {
+  color: #3b82f6;
+  flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-  .sidebar {
-    margin: 0 1rem 1rem;
-    order: -1;
-  }
+.categoryBadge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 20px;
+  color: #60a5fa;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
 }
 
-/* ───────────────────────────────
-   🌟 Spotlight (Announcements & Events)
-─────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   SPOTLIGHT (EVENTS & ANNOUNCEMENTS)
+═══════════════════════════════════════════════════════════ */
+
 .spotlightContainer {
   display: flex;
   flex-direction: column;
@@ -661,7 +896,7 @@
   gap: 10px;
 }
 
-/* 📢 Announcements */
+/* Announcements */
 .announcementsList {
   display: flex;
   flex-direction: column;
@@ -712,7 +947,7 @@
   margin: 0;
 }
 
-/* 📅 Events */
+/* Events */
 .eventsList {
   display: flex;
   flex-direction: column;
@@ -765,7 +1000,7 @@
 }
 
 .eventDetails {
-  flex: 1;
+ flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -798,82 +1033,9 @@
   flex-shrink: 0;
 }
 
-/* 📱 Responsive */
-@media (max-width: 768px) {
-  .announcementHeader {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .eventDate {
-    min-width: 50px;
-    padding: 6px 10px;
-  }
-
-  .eventDay {
-    font-size: 1.3rem;
-  }
-}
-
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.memberBadge {
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.memberBadge:hover {
-  opacity: 0.8;
-}
-
-.joinButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Add Book Button (for admins) */
-.clubActions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.addBookButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 28px;
-  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
-}
-
-.addBookButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
-  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
-}
-
-.addBookButton:active {
-  transform: translateY(0);
-}
+/* ═══════════════════════════════════════════════════════════
+   BOOKS GRID
+═══════════════════════════════════════════════════════════ */
 
 .booksGrid {
   margin: 2rem 0;
@@ -953,6 +1115,10 @@
   font-family: monospace;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   UTILITIES & STATES
+═══════════════════════════════════════════════════════════ */
+
 .loading {
   display: flex;
   flex-direction: column;
@@ -961,6 +1127,7 @@
   padding: 3rem;
   gap: 1rem;
   color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
 }
 
 .spinner {
@@ -1004,104 +1171,69 @@
   font-style: italic;
 }
 
-@media (max-width: 768px) {
-  .booksList {
-    grid-template-columns: 1fr;
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN
+═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  .headerContent { 
+    padding: 0 32px; 
   }
   
-  .bookCard {
+  .clubName { 
+    font-size: 28px; 
+  }
+
+  .feed {
+    padding: 1.5rem;
+  }
+
+  .sidebar {
+    margin: 0 1.5rem 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .literaryLoungeHeader {
+    height: auto;
+    min-height: 200px;
+  }
+  
+  .headerContent {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
+    padding: 32px 24px;
+    align-items: flex-start;
   }
   
-  .bookCover {
-    width: 120px;
-    height: 180px;
+  .clubActions {
+    width: 100%;
+    justify-content: space-between;
   }
-}
-/* Sidebar - Add these styles */
-.sidebar {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 1.5rem;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-}
+  
+  .memberCircle { 
+    align-items: flex-start; 
+  }
 
-.sidebarSection {
-  margin-bottom: 1.5rem;
-}
+  .feed {
+    padding: 1rem;
+  }
 
-.sidebarSection:last-child {
-  margin-bottom: 0;
-}
+  .cardInner {
+    flex-direction: column;
+  }
 
-.sidebarTitle {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 700;
-  color: #3b82f6;
-  margin-bottom: 1.25rem;
-  font-size: 1.25rem;
-}
+  .upvoteSection {
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 12px 16px;
+  }
 
-.sidebarSubtitle {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.875rem;
-}
-
-.sidebarDescription {
-  color: #cbd5e1;
-  line-height: 1.6;
-  font-size: 0.95rem;
-  margin: 0;
-}
-
-.sidebarList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.sidebarList li {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: #e2e8f0;
-  font-size: 0.9rem;
-}
-
-.sidebarList li svg {
-  color: #3b82f6;
-  flex-shrink: 0;
-}
-
-.categoryBadge {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 20px;
-  color: #60a5fa;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: capitalize;
-}
-
-/* Mobile Optimizations for Sidebar */
-@media (max-width: 768px) {
   .sidebar {
     padding: 1rem;
     border-radius: 12px;
     margin: 0 0 1rem 0;
+    order: -1;
   }
 
   .sidebarTitle {
@@ -1139,4 +1271,287 @@
     font-size: 0.8rem;
     padding: 0.375rem 0.875rem;
   }
+
+  .announcementHeader {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .eventDate {
+    min-width: 50px;
+    padding: 6px 10px;
+  }
+
+  .eventDay {
+    font-size: 1.3rem;
+  }
+
+  .booksList {
+    grid-template-columns: 1fr;
+  }
+  
+  .bookCard {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .bookCover {
+    width: 120px;
+    height: 180px;
+  }
+}
+/* Books Section */
+.booksSection {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* Currently Reading */
+.currentlyReading {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(167, 139, 250, 0.05));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 16px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.currentBookHeader {
+  margin-bottom: 1rem;
+}
+
+.currentBookTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #a78bfa;
+}
+
+.currentBookCard {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.currentBookCard:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(139, 92, 246, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
+}
+
+.currentBookCoverWrapper {
+  flex-shrink: 0;
+}
+
+.currentBookCover {
+  width: 140px;
+  height: 210px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.currentBookNoCover {
+  width: 140px;
+  height: 210px;
+  background: rgba(139, 92, 246, 0.2);
+  border: 2px dashed rgba(139, 92, 246, 0.4);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(167, 139, 250, 0.6);
+}
+
+.currentBookInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.currentBookName {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.currentBookAuthor {
+  margin: 0;
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.currentBookDescription {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.currentBookBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(139, 92, 246, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  border-radius: 20px;
+  color: #a78bfa;
+  font-size: 0.875rem;
+  font-weight: 600;
+  width: fit-content;
+  margin-top: auto;
+}
+
+/* Past Books Section */
+.pastBooksSection {
+  margin-top: 1rem;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fda4af;
+  margin-bottom: 1rem;
+}
+
+.booksList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.bookCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.bookCard:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(236, 72, 153, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.2);
+}
+
+.bookCover {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.noCover {
+  width: 100%;
+  aspect-ratio: 2/3;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.bookInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bookTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.bookAuthor {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .currentBookCard {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .currentBookCover,
+  .currentBookNoCover {
+    width: 120px;
+    height: 180px;
+  }
+
+  .currentBookInfo {
+    align-items: center;
+  }
+
+  .booksList {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
+  }
+}
+.booksHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.addBookInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #9333ea, #3b82f6);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.addBookInline:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
 }
