@@ -51,6 +51,7 @@ export default function ClubHeader({
   const [memberCount, setMemberCount] = useState(club.membersCount || 0);
   const [showAddBookPanel, setShowAddBookPanel] = useState(false);
   const [clubBooks, setClubBooks] = useState<any[]>([]);
+  const [showFullDesc, setShowFullDesc] = useState(false);
 
   const isAdmin = club.ownerUid === currentUserId;
 
@@ -70,16 +71,16 @@ export default function ClubHeader({
 
   // ─────────────── Fetch Club Books ───────────────
   const fetchBooks = async () => {
-  try {
-    const db = getDbOrThrow(); // ✅ guarantees non-null Firestore
-    const booksRef = collection(db, 'clubs', club.slug, 'books');
-    const snap = await getDocs(booksRef);
-    const books = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    setClubBooks(books);
-  } catch (err) {
-    console.error('Error fetching club books:', err);
-  }
-};
+    try {
+      const db = getDbOrThrow();
+      const booksRef = collection(db, 'clubs', club.slug, 'books');
+      const snap = await getDocs(booksRef);
+      const books = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setClubBooks(books);
+    } catch (err) {
+      console.error('Error fetching club books:', err);
+    }
+  };
 
   useEffect(() => {
     fetchBooks();
@@ -189,8 +190,26 @@ export default function ClubHeader({
 
               <div className={styles.clubInfo}>
                 <h1 className={styles.clubName}>{club.name}</h1>
+
+                {/* Description with Show More */}
                 {club.description && (
-                  <p className={styles.clubTagline}>{club.description}</p>
+                  <div className={styles.clubTaglineWrapper}>
+                    <p
+                      className={`${styles.clubTagline} ${
+                        showFullDesc ? styles.expanded : ''
+                      }`}
+                    >
+                      {club.description}
+                    </p>
+                    {club.description.length > 80 && (
+                      <button
+                        className={styles.toggleDescBtn}
+                        onClick={() => setShowFullDesc((prev) => !prev)}
+                      >
+                        {showFullDesc ? 'Show less' : 'Show more'}
+                      </button>
+                    )}
+                  </div>
                 )}
 
                 {/* Meta Section */}

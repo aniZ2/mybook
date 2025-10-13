@@ -1555,3 +1555,180 @@
   opacity: 0.85;
   transform: translateY(-1px);
 }
+
+/* ─────────────── Club Library Section ─────────────── */
+.clubBooksSection {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.booksTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin-bottom: 0.75rem;
+}
+
+.bookCoversRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bookCoverLink {
+  display: block;
+  width: 60px;
+  height: 90px;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bookCoverLink:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.bookCoverThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.noCoverThumb {
+  width: 60px;
+  height: 90px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a1a1aa;
+}
+.clubTagline {
+  font-size: 0.9rem;
+  color: #d1d5db;
+  line-height: 1.4;
+  max-width: 480px;
+  margin-top: 0.35rem;
+
+  /* 👇 Truncate after two lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* show 2 lines max */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 768px) {
+  .frostedContainer {
+    padding: 1rem 1.25rem;
+  }
+
+  .clubName {
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+
+  .clubTagline {
+    font-size: 0.85rem;
+    max-width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .clubMeta {
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .clubActions {
+    margin-top: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .addBookButton,
+  .joinButton {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.9rem;
+    padding: 0.6rem;
+  }
+}
+.clubTaglineWrapper {
+  position: relative;
+  max-width: 480px;
+  margin-bottom: 0.75rem;
+}
+
+.clubTagline {
+  font-size: 0.9rem;
+  color: #d1d5db;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* collapsed by default */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.3s ease;
+}
+
+.clubTagline.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.toggleDescBtn {
+  background: none;
+  border: none;
+  color: #9b8afc;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 0.3rem;
+  transition: color 0.2s ease;
+}
+
+.toggleDescBtn:hover {
+  color: #c5baff;
+}
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.roundBtn {
+  background: linear-gradient(135deg, #2563eb, #9333ea);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.roundBtn:hover {
+  opacity: 0.9;
+}
+
+.emptyVoteNote {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.roundControl {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}

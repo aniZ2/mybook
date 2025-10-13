@@ -133,3 +133,35 @@ export const cleanupOldSearchEvents = onSchedule(
     // No explicit return statement needed, function implicitly returns Promise<void>
   }
 );
+
+// ─────────────────────────────
+// 3️⃣ Trending Pool Updater (V2)
+// ─────────────────────────────
+// Refreshes top trending books and updates every club's trendingPool array
+export const refreshTrendingPool = onSchedule("30 1 * * *", async (): Promise<void> => {
+  console.log("🌍 Updating global trending pool for all clubs...");
+
+  const db = getFirestore();
+
+  // 1️⃣ Get top 10 books by recent search score
+  const trendingSnap = await db
+    .collection("books")
+    .orderBy("search_score_24h", "desc")
+    .limit(10)
+    .get();
+
+  const trendingSlugs = trendingSnap.docs.map((d) => d.id);
+  console.log(`🔥 Top trending slugs: ${trendingSlugs.join(", ")}`);
+
+  // 2️⃣ Update each club document with this array
+  const clubsSnap = await db.collection("clubs").get();
+  const updates = clubsSnap.docs.map((club) =>
+    club.ref.update({
+      trendingPool: trendingSlugs,
+      lastTrendingUpdate: admin.firestore.FieldValue.serverTimestamp(),
+    })
+  );
+
+  await Promise.all(updates);
+  console.log(`✅ Updated ${updates.length} clubs with trendingPool.`);
+});

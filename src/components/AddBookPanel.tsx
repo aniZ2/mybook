@@ -9,7 +9,7 @@ import {
   AlertCircle,
   Sparkles,
   Lock,
-  X
+  X,
 } from 'lucide-react';
 import styles from './AddBookPanel.module.css';
 
@@ -27,7 +27,7 @@ interface AddBookPanelProps {
   currentUserId?: string;
   onBookAdded?: () => void;
   isAdmin?: boolean;
-  onClose?: () => void; // ✅ allows ClubHeader to close it
+  onClose?: () => void; // for close button
 }
 
 export default function AddBookPanel({
@@ -35,13 +35,15 @@ export default function AddBookPanel({
   currentUserId,
   onBookAdded,
   isAdmin,
-  onClose
+  onClose,
 }: AddBookPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Book[]>([]);
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null
+  );
 
   // ─────────────── Helpers ───────────────
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -86,10 +88,11 @@ export default function AddBookPanel({
 
     setAdding(true);
     try {
-      const bookSlug =
-        book.slug ||
-        book.id ||
-        book.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      // ✅ Always generate consistent global slug
+      const bookSlug = book.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
 
       const { auth } = await import('@/lib/firebase');
       if (!auth) throw new Error('Firebase not initialized');
@@ -138,7 +141,7 @@ export default function AddBookPanel({
     }
   };
 
-  // ─────────────── Render ───────────────
+  // ─────────────── Restricted View ───────────────
   if (!isAdmin) {
     return (
       <div className={styles.panel}>
@@ -150,9 +153,10 @@ export default function AddBookPanel({
     );
   }
 
+  // ─────────────── Render ───────────────
   return (
     <div className={styles.panel}>
-      {/* Header with close button */}
+      {/* Header with Close Button */}
       <div className={styles.panelHeader}>
         <h3 className={styles.title}>Add a Book to Your Club</h3>
         <button className={styles.closeButton} onClick={() => onClose?.()}>
@@ -190,11 +194,7 @@ export default function AddBookPanel({
               <div key={book.id} className={styles.bookItem}>
                 <div className={styles.bookInfo}>
                   {book.coverUrl ? (
-                    <img
-                      src={book.coverUrl}
-                      alt={book.title}
-                      className={styles.bookCover}
-                    />
+                    <img src={book.coverUrl} alt={book.title} className={styles.bookCover} />
                   ) : (
                     <div className={styles.noCover}>
                       <Book size={32} />
@@ -205,7 +205,6 @@ export default function AddBookPanel({
                     <p>{book.author}</p>
                   </div>
                 </div>
-
                 <div className={styles.bookActions}>
                   <button
                     onClick={() => handleAddBook(book, true)}
@@ -238,11 +237,7 @@ export default function AddBookPanel({
             toast.type === 'success' ? styles.toastSuccess : styles.toastError
           }`}
         >
-          {toast.type === 'success' ? (
-            <CheckCircle2 size={18} />
-          ) : (
-            <AlertCircle size={18} />
-          )}
+          {toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{toast.message}</span>
         </div>
       )}

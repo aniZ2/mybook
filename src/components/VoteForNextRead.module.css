@@ -1,0 +1,142 @@
+.voteSection {
+  margin-top: 1rem;
+  background: #0f172a;
+  padding: 1rem;
+  border-radius: 12px;
+}
+
+.title {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #f1f5f9;
+  text-align: center;
+}
+
+.candidateList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.candidateCard {
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.cover {
+  width: 100px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.info h4 {
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+  color: #f8fafc;
+}
+
+.info p {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.voteBtn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.voteBtn:hover {
+  background: #1d4ed8;
+}
+
+.votedBtn {
+  background: #334155;
+  color: #a1a1aa;
+  cursor: default;
+}
+
+.loading,
+.emptyState {
+  text-align: center;
+  color: #94a3b8;
+  padding: 1rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.adminTools {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.adminBtn {
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.start {
+  background: #10b981;
+  color: #fff;
+}
+
+.start:hover {
+  background: #059669;
+}
+
+.declare {
+  background: #2563eb;
+  color: #fff;
+}
+
+.declare:hover {
+  background: #1d4ed8;
+}
+
+.reset {
+  background: #475569;
+  color: #f1f5f9;
+}
+
+.reset:hover {
+  background: #334155;
+}
+
+.inactiveText {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+}

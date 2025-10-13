@@ -3,29 +3,33 @@ import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/context/AuthProvider";
 import Header from "@/components/Header";
 
-export const dynamic = 'force-dynamic';
+// ─────────────── Next.js Static Config ───────────────
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+export const fetchCache = "force-no-store";
 
+// ─────────────── Site Metadata ───────────────
 export const metadata: Metadata = {
   title: "Booklyverse",
   description: "A social library for readers & authors",
-  manifest: '/manifest.json',
-  themeColor: '#0f172a',
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
-    title: 'Booklyverse',
+    statusBarStyle: "default",
+    title: "Booklyverse",
   },
 };
 
+// ─────────────── Viewport (NEW Next.js spec) ───────────────
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5, // ✅ Changed from 1.0 to allow zoom
-  userScalable: true, // ✅ Changed to true for accessibility
+  maximumScale: 5, // allows zoom
+  userScalable: true, // accessibility
+  themeColor: "#0f172a", // ✅ moved here from metadata
 };
 
+// ─────────────── Root Layout ───────────────
 export default function RootLayout({
   children,
 }: {
@@ -33,6 +37,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* ✅ Add modern and legacy PWA tags */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="application-name" content="Booklyverse" />
+        <meta name="apple-mobile-web-app-title" content="Booklyverse" />
+        <meta name="theme-color" content="#0f172a" />
+      </head>
       <body>
         <AuthProvider>
           <Header />

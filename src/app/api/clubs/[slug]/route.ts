@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbAdmin } from "@/lib/firebase-admin";
-import { getAuth } from "firebase-admin/auth"; // Add this import
+import { getAuth } from "firebase-admin/auth";
 
 /**
  * Recursively serialize Firestore/Admin Timestamp fields to ISO strings
@@ -35,14 +35,12 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
   console.log("📡 CLUB API REQUEST:", slug);
 
   try {
-    console.log("🧩 Admin SDK check:", !!dbAdmin);
-
     if (!dbAdmin) {
       console.error("🔥 dbAdmin is null — Admin SDK not initialized.");
       return NextResponse.json({ success: false, error: "Admin SDK missing" }, { status: 500 });
     }
 
-    // ✅ Get current user from Authorization header
+    // ✅ Verify user (optional)
     let currentUserId: string | null = null;
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
@@ -50,7 +48,6 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
         const token = authHeader.substring(7);
         const decodedToken = await getAuth().verifyIdToken(token);
         currentUserId = decodedToken.uid;
-        console.log("👤 Authenticated user:", currentUserId);
       } catch (err) {
         console.warn("⚠️ Invalid auth token:", err);
       }
@@ -58,61 +55,76 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
 
     const clubRef = dbAdmin.collection("clubs").doc(slug);
     const clubSnap = await clubRef.get();
-    console.log("📄 clubSnap.exists:", clubSnap.exists);
-
     if (!clubSnap.exists) {
       return NextResponse.json({ success: false, error: "Club not found" }, { status: 404 });
     }
 
-    const clubData = clubSnap.data();
-    console.log("✅ CLUB DATA:", clubData ? Object.keys(clubData) : "No data");
+    const clubData = clubSnap.data() || {};
+    const roundActive = clubData.roundActive ?? false;
+    const nextCandidates = clubData.nextCandidates ?? [];
 
-    // Fetch all collections in parallel
-    const [booksSnap, membersSnap, postsSnap, eventsSnap, announcementsSnap] = await Promise.all([
+    // ─────────── Fetch related subcollections
+    const [
+      booksSnap,
+      membersSnap,
+      postsSnap,
+      eventsSnap,
+      announcementsSnap,
+      votesSnap,
+    ] = await Promise.all([
       clubRef.collection("books").limit(12).get(),
       clubRef.collection("members").limit(12).get(),
       clubRef.collection("posts").orderBy("createdAt", "desc").limit(20).get(),
-      clubRef.collection("events").where("date", ">=", new Date().toISOString()).orderBy("date", "asc").limit(5).get(),
+      clubRef.collection("events")
+        .where("date", ">=", new Date().toISOString())
+        .orderBy("date", "asc")
+        .limit(5)
+        .get(),
       clubRef.collection("announcements").orderBy("date", "desc").limit(5).get(),
+      dbAdmin.collection(`clubs/${slug}/votes`).get(), // ✅ voting subcollection
     ]);
 
-    console.log(
-      "📚 books:", booksSnap.size,
-      "👥 members:", membersSnap.size,
-      "📰 posts:", postsSnap.size,
-      "📅 events:", eventsSnap.size,
-      "📢 announcements:", announcementsSnap.size
-    );
+    // ─────────── Map votes into a dictionary
+    const votes: Record<string, number> = {};
+    votesSnap.forEach((doc) => {
+      const d = doc.data();
+      votes[doc.id] = d.voteCount || 0;
+    });
 
-    // ✅ Process posts with upvote status
+    // ─────────── Map posts with upvote status
     const posts = postsSnap.docs.map((d) => {
-      const postData = d.data();
-      const upvotedBy = postData.upvotedBy || [];
+      const data = d.data();
+      const upvotedBy = data.upvotedBy || [];
       return {
         id: d.id,
-        slug: d.id, // Use document ID as slug
-        clubSlug: slug, // Add club slug
-        ...serialize(postData),
+        slug: d.id,
+        clubSlug: slug,
+        ...serialize(data),
         hasUpvoted: currentUserId ? upvotedBy.includes(currentUserId) : false,
       };
     });
 
-    // ✅ APPLY SERIALIZATION HERE
+    // ─────────── Build response
     return NextResponse.json(
       {
         success: true,
         club: serialize(clubData),
+        roundActive,
+        nextCandidates,
+        votes,
         books: booksSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
         members: membersSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
-        posts, // Use the processed posts
+        posts,
         events: eventsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
         announcements: announcementsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
       },
       { status: 200 }
     );
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("🔥 API ERROR:", message);
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  } catch (err: any) {
+    console.error("🔥 API ERROR:", err);
+    return NextResponse.json(
+      { success: false, error: err.message || "Server error" },
+      { status: 500 }
+    );
   }
 }

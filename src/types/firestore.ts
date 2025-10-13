@@ -141,10 +141,18 @@ export interface ClubDoc {
   membersCount: number;
   memberIds?: string[];
   booksCount: number;
-  currentBookId?: string;        // ✨ Currently reading book (book slug)
-  pastBookIds?: string[];        // ✨ Past books (array of book slugs)
-  isPrivate?: boolean;           // ✨ Privacy setting (default: false)
-  allowPublicPosts?: boolean;    // ✨ Allow members to share posts publicly (default: true)
+
+  /** Reading cycle */
+  currentBookId?: string;        // currently reading
+  pastBookIds?: string[];        // finished books
+  nextCandidates?: string[];     // nominated books for next round
+  roundActive?: boolean;         // whether voting round is ongoing
+  trendingPool?: string[];       // optional trending books pre-pulled
+
+  /** Club settings */
+  isPrivate?: boolean;
+  allowPublicPosts?: boolean;
+  isPublic: boolean;
   category:
     | 'fiction'
     | 'non-fiction'
@@ -154,14 +162,16 @@ export interface ClubDoc {
     | 'fantasy'
     | 'biography'
     | 'general';
-  isPublic: boolean;
   tags?: string[];
   theme?: {
     primary: string;
     secondary: string;
   };
+
+  /** Time metadata */
   createdAt?: FirestoreDate;
   updatedAt?: FirestoreDate;
+  roundEndedAt?: FirestoreDate;
 }
 
 /* ─────────── ClubMemberDoc ─────────── */
