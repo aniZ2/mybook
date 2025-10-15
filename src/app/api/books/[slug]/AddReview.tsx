@@ -11,11 +11,10 @@ export default function AddReview({ slug }: { slug: string }) {
   const [rating, setRating] = useState<number>(0);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const signedIn = !!user;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!signedIn || !user) { // ✅ Add user check
+    if (!user) { // ✅ Add user check
       alert('Please sign in to review.');
       return;
     }
@@ -60,16 +59,16 @@ export default function AddReview({ slug }: { slug: string }) {
       </div>
       <textarea
         className="input"
-        placeholder={signedIn ? 'Share your thoughts…' : 'Sign in to review'}
+        placeholder={user ? 'Share your thoughts…' : 'Sign in to review'}
         value={text}
         onChange={e => setText(e.target.value)}
-        disabled={!signedIn || busy}
+        disabled={!user || busy}
         rows={4}
         style={{ marginTop: '.6rem' }}
       />
       <button
         className="btn btn-primary"
-        disabled={!signedIn || busy || rating === 0}
+        disabled={!user || busy || rating === 0}
         style={{ marginTop: '.6rem' }}
       >
         {busy ? 'Posting…' : 'Post review'}
