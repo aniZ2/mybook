@@ -184,28 +184,26 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
     setShowShareModal(false);
   };
 
-  /* ─────────── Buy Links ─────────── */
-  const amazonUrl =
-    book?.asin
-      ? `https://www.amazon.com/dp/${book.asin}`
-      : book?.meta?.isbn13 || book?.meta?.isbn10
-      ? `https://www.amazon.com/s?k=${encodeURIComponent(
-          book.meta?.isbn13 || book.meta?.isbn10!
-        )}`
-      : book?.buyLink || null;
+  /* ─────────── Buy Links (Safe Version) ─────────── */
+  const amazonUrl = (() => {
+    if (book?.asin) return `https://www.amazon.com/dp/${book.asin}`;
+    const isbn = book?.meta?.isbn13 || book?.meta?.isbn10;
+    if (isbn) return `https://www.amazon.com/s?k=${encodeURIComponent(isbn)}`;
+    return book?.buyLink || null;
+  })();
 
-  const bnUrl =
-    book?.meta?.isbn13 || book?.meta?.isbn10
-      ? `https://www.barnesandnoble.com/s/${encodeURIComponent(
-          book.meta?.isbn13 || book.meta?.isbn10!
-        )}`
-      : book?.bnLink || null;
+  const bnUrl = (() => {
+    const isbn = book?.meta?.isbn13 || book?.meta?.isbn10;
+    if (isbn) return `https://www.barnesandnoble.com/s/${encodeURIComponent(isbn)}`;
+    return book?.bnLink || null;
+  })();
 
-  const googleUrl =
-    book?.googleLink ||
-    (book?.title
-      ? `https://books.google.com?q=${encodeURIComponent(book.title)}`
-      : null);
+  const googleUrl = (() => {
+    if (book?.googleLink) return book.googleLink;
+    if (book?.title)
+      return `https://books.google.com?q=${encodeURIComponent(book.title)}`;
+    return null;
+  })();
 
   /* ─────────── UI ─────────── */
   if (loading)
