@@ -2,19 +2,19 @@
 
 import { useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider';
 import type { ReviewDoc } from '@/types/firestore';
 
 export default function AddReview({ slug }: { slug: string }) {
-  const user = auth.currentUser;
+  const { user } = useAuth();
   const [rating, setRating] = useState<number>(0);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const signedIn = !!user;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!signedIn) {
+    if (!user) {
       alert('Please sign in to review.');
       return;
     }
@@ -22,11 +22,17 @@ export default function AddReview({ slug }: { slug: string }) {
       alert('Rating must be 1–5');
       return;
     }
+    
+    if (!db) {
+      alert('Database not initialized');
+      return;
+    }
+
     setBusy(true);
     try {
       const review: Omit<ReviewDoc, 'id'> = {
-        userId: user!.uid,
-        userName: user!.displayName || 'Anonymous',
+        userId: user.uid,
+        userName: user.displayName || 'Anonymous',
         rating,
         text,
         createdAt: serverTimestamp(),
@@ -36,6 +42,10 @@ export default function AddReview({ slug }: { slug: string }) {
 
       setRating(0);
       setText('');
+      alert('Review posted successfully! ✅');
+    } catch (error) {
+      console.error('Error posting review:', error);
+      alert('Failed to post review. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -49,16 +59,16 @@ export default function AddReview({ slug }: { slug: string }) {
       </div>
       <textarea
         className="input"
-        placeholder={signedIn ? 'Share your thoughts…' : 'Sign in to review'}
+        placeholder={user ? 'Share your thoughts…' : 'Sign in to review'}
         value={text}
         onChange={e => setText(e.target.value)}
-        disabled={!signedIn || busy}
+        disabled={!user || busy}
         rows={4}
         style={{ marginTop: '.6rem' }}
       />
       <button
         className="btn btn-primary"
-        disabled={!signedIn || busy || rating === 0}
+        disabled={!user || busy || rating === 0}
         style={{ marginTop: '.6rem' }}
       >
         {busy ? 'Posting…' : 'Post review'}
