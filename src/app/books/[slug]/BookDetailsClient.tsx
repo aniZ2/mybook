@@ -14,17 +14,22 @@ import {
   deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { getDbOrThrow } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthProvider';
 import Image from 'next/image';
 import Link from 'next/link';
 import AddReview from './AddReview';
 import ReviewsList from './ReviewsList';
 import type { BookDoc, ReviewDoc, ClubDoc } from '@/types/firestore';
 import { slugify } from '@/lib/slug';
+import { useSearchParams } from 'next/navigation';
+import { Users, MessageCircle, BookOpen, ArrowLeft, ChevronUp } from 'lucide-react';
 
 export default function BookDetailsClient({ slug }: { slug: string }) {
-  const [user] = useAuthState(auth);
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const fromClub = searchParams.get('club');
+
   const [book, setBook] = useState<BookDoc | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,12 +37,17 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
   const [totalReviews, setTotalReviews] = useState(0);
   const [relatedBooks, setRelatedBooks] = useState<BookDoc[]>([]);
   const [clubsWithBook, setClubsWithBook] = useState<ClubDoc[]>([]);
+  const [discussions, setDiscussions] = useState<any[]>([]);
   const [isInReadingList, setIsInReadingList] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
   /* ─────────── Load Book Data ─────────── */
   useEffect(() => {
+    if (!slug) return;
+
     (async () => {
+      const db = getDbOrThrow();
+
       try {
         const snap = await getDoc(doc(db, 'books', slug));
         if (!snap.exists()) {
@@ -47,16 +57,15 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
         }
 
         const bookData = snap.data() as BookDoc;
-
-        // ✅ Ensure proper slug/id consistency
         bookData.id = bookData.id || slug;
         bookData.slug = bookData.slug || slug;
+
         if (!bookData.authorId && bookData.authorName)
           bookData.authorId = slugify(bookData.authorName);
 
         setBook(bookData);
 
-        /* ─── Reviews ─── */
+        // Reviews
         const reviewsRef = collection(db, 'books', slug, 'reviews');
         const reviewsQuery = query(reviewsRef, orderBy('createdAt', 'desc'));
         const reviewsSnap = await getDocs(reviewsQuery);
@@ -69,8 +78,8 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
           setTotalReviews(reviews.length);
         }
 
-        /* ─── Related Books ─── */
-        if (bookData?.authorId) {
+        // Related Books
+        if (bookData.authorId) {
           const relatedQuery = query(
             collection(db, 'books'),
             where('authorId', '==', bookData.authorId),
@@ -83,20 +92,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
           setRelatedBooks(related.slice(0, 4));
         }
 
-        /* ─── Clubs Featuring This Book ─── */
-        const clubsQuery = query(collection(db, 'clubs'), limit(10));
-        const clubsSnap = await getDocs(clubsQuery);
-        const clubsWithThisBook: ClubDoc[] = [];
-
-        for (const clubDoc of clubsSnap.docs) {
-          const clubBooksRef = collection(db, 'clubs', clubDoc.id, 'books');
-          const bookQuery = query(clubBooksRef, where('id', '==', bookData.id), limit(1));
-          const bookSnap = await getDocs(bookQuery);
-          if (!bookSnap.empty) clubsWithThisBook.push(clubDoc.data() as ClubDoc);
-        }
-        setClubsWithBook(clubsWithThisBook.slice(0, 3));
-
-        /* ─── Reading List Check ─── */
+        // Reading List Check
         if (user) {
           const readingListRef = doc(db, 'users', user.uid, 'readingList', slug);
           const readingListSnap = await getDoc(readingListRef);
@@ -111,9 +107,43 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
     })();
   }, [slug, user]);
 
+  /* ─────────── Fetch Clubs Reading This Book ─────────── */
+  useEffect(() => {
+    if (!slug) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/books/${slug}/clubs`);
+        if (res.ok) {
+          const data = await res.json();
+          setClubsWithBook(data.clubs || []);
+        }
+      } catch (error) {
+        console.error('Error fetching clubs:', error);
+      }
+    })();
+  }, [slug]);
+
+  /* ─────────── Fetch Public Discussions ─────────── */
+  useEffect(() => {
+    if (!slug) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/books/${slug}/discussions`);
+        if (res.ok) {
+          const data = await res.json();
+          setDiscussions(data.discussions || []);
+        }
+      } catch (error) {
+        console.error('Error fetching discussions:', error);
+      }
+    })();
+  }, [slug]);
+
   /* ─────────── Toggle Reading List ─────────── */
   const handleAddToReadingList = async () => {
+    const db = getDbOrThrow();
     if (!user || !book) return;
+
     try {
       const readingListRef = doc(db, 'users', user.uid, 'readingList', slug);
       if (isInReadingList) {
@@ -131,6 +161,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
       }
     } catch (err) {
       console.error('Failed to update reading list:', err);
+      alert('Failed to update reading list');
     }
   };
 
@@ -153,7 +184,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
     setShowShareModal(false);
   };
 
-  /* ─────────── Dynamic Buy Links ─────────── */
+  /* ─────────── Buy Links ─────────── */
   const amazonUrl =
     book?.asin
       ? `https://www.amazon.com/dp/${book.asin}`
@@ -189,7 +220,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
       <main className="container py-8 max-w-3xl mx-auto text-center">
         <h1 className="text-2xl font-semibold mb-2">Book Not Found</h1>
         <p className="text-gray-400 mb-4">
-          We couldn’t locate this title. Try searching again.
+          We couldn't locate this title. Try searching again.
         </p>
         <Link href="/discover" className="text-yellow-500 hover:underline">
           ← Back to Discover
@@ -201,15 +232,27 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
     <main className="container py-8 max-w-5xl mx-auto text-gray-100">
       <Link
         href="/discover"
-        className="inline-block mb-6 text-yellow-500 hover:text-yellow-400 font-medium"
+        className="inline-flex items-center gap-2 mb-6 text-yellow-500 hover:text-yellow-400 font-medium"
       >
-        ← Back to Discover
+        <ArrowLeft size={18} /> Back to Discover
       </Link>
 
-      {/* ─────────── Book Panel ─────────── */}
+      {fromClub && (
+        <div className="mb-6 p-3 rounded-lg bg-purple-900/30 border border-purple-700/40 text-sm text-purple-300">
+          📚 Viewing this book from{' '}
+          <Link
+            href={`/clubs/${fromClub}`}
+            className="text-yellow-400 hover:underline"
+          >
+            {fromClub}
+          </Link>{' '}
+          club.
+        </div>
+      )}
+
+      {/* Book Info Panel */}
       <section className="bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-lg">
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Cover */}
           {book.coverUrl ? (
             <Image
               src={book.coverUrl}
@@ -224,7 +267,6 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
             </div>
           )}
 
-          {/* Info */}
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-yellow-400">{book.title}</h1>
             <p className="text-gray-400 mt-1">
@@ -241,13 +283,11 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
               {book.publisher && <p>Publisher: {book.publisher}</p>}
               {book.publishedDate && <p>Published: {book.publishedDate}</p>}
               {book.meta?.isbn13 && <p>ISBN-13: {book.meta.isbn13}</p>}
-              {book.meta?.isbn10 && <p>ISBN-10: {book.meta.isbn10}</p>}
-              {book.asin && <p>ASIN: {book.asin}</p>}
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3">
               {amazonUrl && (
-                <a
+                
                   href={amazonUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -257,7 +297,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
                 </a>
               )}
               {bnUrl && (
-                <a
+                
                   href={bnUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -267,7 +307,7 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
                 </a>
               )}
               {googleUrl && (
-                <a
+                
                   href={googleUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -298,105 +338,137 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
                 Share
               </button>
             </div>
-
-            {book.description && (
-              <div className="mt-6">
-                <h3 className="font-semibold text-lg mb-2 text-yellow-400">
-                  About this Book
-                </h3>
-                <p className="text-gray-300 leading-relaxed whitespace-pre-line">
-                  {book.description}
-                </p>
-              </div>
-            )}
           </div>
         </div>
+      </section>
+
+      {/* Clubs Reading This Book */}
+      <section className="mt-10">
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-yellow-400">
+          <Users size={22} /> Clubs Reading This Book
+        </h2>
+        {clubsWithBook.length === 0 ? (
+          <p className="text-gray-400">No clubs are reading this yet.</p>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {clubsWithBook.map((club) => (
+              <Link
+                key={club.slug}
+                href={`/clubs/${club.slug}`}
+                className="bg-slate-900 p-4 rounded-xl border border-slate-700 hover:border-yellow-500/60 transition group"
+              >
+                <div className="flex items-start gap-3">
+                  {club.iconUrl ? (
+                    <img
+                      src={club.iconUrl}
+                      alt={club.name}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center">
+                      <BookOpen size={22} className="text-gray-600" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-white group-hover:text-yellow-400 transition truncate">
+                      {club.name}
+                    </h3>
+                    <p className="text-sm text-gray-400 flex items-center gap-1">
+                      <Users size={14} />
+                      {club.membersCount || 0} members
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Public Discussions */}
+      <section className="mt-10">
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-yellow-400">
+          <MessageCircle size={22} /> Public Discussions
+        </h2>
+        {discussions.length === 0 ? (
+          <p className="text-gray-400">No public discussions yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {discussions.map((d) => (
+              <Link
+                key={d.id}
+                href={`/clubs/${d.clubSlug}/posts/${d.id}`}
+                className="block bg-slate-900 p-4 rounded-xl border border-slate-700 hover:border-slate-600 transition"
+              >
+                <div className="flex items-start gap-3">
+                  <ChevronUp size={20} className="text-gray-400" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-400 mb-1">
+                      <span className="font-semibold text-white">{d.userName}</span>{' '}
+                      • {new Date(d.createdAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-gray-300 line-clamp-3">{d.content}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Reviews */}
+      <section className="mt-10">
+        <h2 className="text-2xl font-bold mb-4 text-yellow-400">Reviews</h2>
+        <AddReview slug={slug} />
+        <ReviewsList slug={slug} />
       </section>
 
       {/* Related Books */}
       {relatedBooks.length > 0 && (
         <section className="mt-10">
-          <h2 className="text-xl font-semibold mb-3 text-yellow-400">
+          <h2 className="text-2xl font-bold mb-4 text-yellow-400">
             More by {book.authorName}
           </h2>
-          <div className="flex gap-4 overflow-x-auto pb-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {relatedBooks.map((b) => (
-              <div
-                key={b.slug}
-                className="min-w-[140px] cursor-pointer hover:opacity-80 transition"
-                onClick={() => (window.location.href = `/books/${b.slug}`)}
-              >
-                <img
-                  src={b.coverUrl || '/no-cover.png'}
-                  alt={b.title}
-                  className="w-[140px] h-[210px] object-cover rounded-lg shadow"
-                />
-                <p className="mt-2 text-sm font-medium text-gray-300 line-clamp-2">
+              <Link key={b.slug} href={`/books/${b.slug}`} className="group">
+                {b.coverUrl ? (
+                  <img
+                    src={b.coverUrl}
+                    alt={b.title}
+                    className="w-full aspect-[2/3] object-cover rounded-lg shadow-md group-hover:shadow-xl transition"
+                  />
+                ) : (
+                  <div className="w-full aspect-[2/3] bg-slate-800 rounded-lg flex items-center justify-center">
+                    <BookOpen size={32} className="text-gray-600" />
+                  </div>
+                )}
+                <h3 className="mt-2 text-sm font-medium text-white group-hover:text-yellow-400 transition line-clamp-2">
                   {b.title}
-                </p>
-              </div>
+                </h3>
+              </Link>
             ))}
           </div>
         </section>
       )}
-
-      {/* Clubs */}
-      {clubsWithBook.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-xl font-semibold mb-3 text-yellow-400">
-            Clubs Reading This Book
-          </h2>
-          <ul className="space-y-2">
-            {clubsWithBook.map((club) => (
-              <li key={club.slug}>
-                <Link href={`/clubs/${club.slug}`} className="text-blue-400 hover:underline">
-                  📚 {club.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Reviews */}
-      <section className="mt-12">
-        <h2 className="text-xl font-semibold mb-4 text-yellow-400">Reader Reviews</h2>
-        {user && (
-          <div className="mb-6">
-            <AddReview slug={slug} />
-
-          </div>
-        )}
-        <ReviewsList slug={slug} />
-      </section>
 
       {/* Share Modal */}
       {showShareModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl shadow-xl max-w-sm w-full text-center">
-            <h3 className="font-semibold mb-2 text-yellow-400">Share this Book</h3>
-            <p className="text-gray-400 text-sm mb-4">
-              Copy the link below to share with friends.
-            </p>
-            <input
-              readOnly
-              value={typeof window !== 'undefined' ? window.location.href : ''}
-              className="w-full border border-slate-700 bg-slate-800 px-3 py-2 rounded text-gray-200"
-            />
-            <div className="flex justify-center gap-3 mt-4">
-              <button
-                onClick={copyLink}
-                className="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 font-medium"
-              >
-                Copy Link
-              </button>
-              <button
-                onClick={() => setShowShareModal(false)}
-                className="px-4 py-2 border border-slate-700 rounded-lg hover:bg-slate-800 text-gray-300"
-              >
-                Cancel
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-xl p-6 max-w-md w-full border border-slate-700">
+            <h3 className="text-xl font-bold mb-4 text-yellow-400">Share this book</h3>
+            <button
+              onClick={copyLink}
+              className="w-full px-4 py-3 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition"
+            >
+              Copy Link
+            </button>
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="w-full mt-3 px-4 py-2 border border-gray-600 rounded-lg hover:bg-slate-800"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
