@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import ClubHeader from '@/components/ClubHeader';
 import ClubFeed from '@/components/ClubFeed';
 import ClubSpotlight from '@/components/ClubSpotlight';
 import ClubBooks from '@/components/ClubBooks';
+import VoteForNextRead from '@/components/VoteForNextRead';
 import { useAuth } from '@/context/AuthProvider';
 import { Send, X } from 'lucide-react';
 import styles from '../ClubsPage.module.css';
@@ -58,7 +59,7 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
   const [submitting, setSubmitting] = useState(false);
   const [refreshBooks, setRefreshBooks] = useState(0);
 
-  const fetchClubData = async () => {
+  const fetchClubData = useCallback(async () => {
     try {
       const headers: HeadersInit = {};
       if (user) {
@@ -83,11 +84,11 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug, user]);
 
   useEffect(() => {
     fetchClubData();
-  }, [slug, user]);
+  }, [fetchClubData]);
 
   const handleJoinSuccess = (newMemberCount: number) => {
     if (clubData?.club && user?.uid) {
@@ -188,10 +189,25 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
       <div className={styles.contentWrapper}>
         {/* Main Feed Area */}
         <section className={styles.feedArea}>
+          {/* Club Books */}
           <ClubBooks 
             clubSlug={slug}
             key={refreshBooks}
           />
+
+          {/* Vote for Next Read */}
+          <VoteForNextRead 
+            clubSlug={slug}
+            isAdmin={user?.uid === club.ownerUid}
+          />
+
+          {/* Events & Announcements */}
+          {((events && events.length > 0) || (announcements && announcements.length > 0)) && (
+            <ClubSpotlight 
+              events={events}
+              announcements={announcements}
+            />
+          )}
 
           {/* Create Post Section */}
           {user && (
@@ -286,16 +302,6 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
             </motion.div>
           )}
         </section>
-
-        {/* Sidebar - Only Events/Announcements */}
-        {((events && events.length > 0) || (announcements && announcements.length > 0)) && (
-          <aside className={styles.sidebarArea}>
-            <ClubSpotlight 
-              events={events}
-              announcements={announcements}
-            />
-          </aside>
-        )}
       </div>
     </main>
   );

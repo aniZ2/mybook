@@ -1,6 +1,9 @@
+// ═══════════════════════════════════════════════════════════
+// 3. TrendingNominees.tsx - Fixed
+// ═══════════════════════════════════════════════════════════
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Loader2, TrendingUp } from 'lucide-react';
 import styles from './TrendingNominees.module.css';
 
@@ -8,11 +11,7 @@ export default function TrendingNominees({ clubSlug }: { clubSlug: string }) {
   const [books, setBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchTrending();
-  }, [clubSlug]);
-
-  const fetchTrending = async () => {
+  const fetchTrending = useCallback(async () => {
     try {
       const res = await fetch(`/api/clubs/${clubSlug}/nominations`);
       const data = await res.json();
@@ -22,7 +21,11 @@ export default function TrendingNominees({ clubSlug }: { clubSlug: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clubSlug]);
+
+  useEffect(() => {
+    fetchTrending();
+  }, [fetchTrending]);
 
   if (loading)
     return (

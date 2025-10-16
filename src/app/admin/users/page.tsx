@@ -1,7 +1,11 @@
+
+// ═══════════════════════════════════════════════════════════
+// 1. AdminUsers.tsx - Fixed
+// ═══════════════════════════════════════════════════════════
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/context/AuthProvider'; // ✅ Import useAuth
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@/context/AuthProvider';
 
 type UserRow = { 
   uid: string; 
@@ -13,20 +17,20 @@ type UserRow = {
 };
 
 export default function AdminUsers(){
-  const { user } = useAuth(); // ✅ Get user from context
+  const { user } = useAuth();
   const [rows, setRows] = useState<UserRow[]>([]);
   const [pageToken, setPageToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = async (token?: string | null) => {
-    if (!user) { // ✅ Use user from context
+  const load = useCallback(async (token?: string | null) => {
+    if (!user) { 
       alert('Sign in'); 
       return; 
     }
 
     setBusy(true);
     try {
-      const idToken = await user.getIdToken(true); // ✅ Use user from context
+      const idToken = await user.getIdToken(true);
       const qs = new URLSearchParams(); 
       if (token) qs.set('pageToken', token);
       
@@ -48,13 +52,13 @@ export default function AdminUsers(){
     } finally {
       setBusy(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => { 
-    if (user) { // ✅ Only load if user exists
+    if (user) {
       load(null); 
     }
-  }, [user]); // ✅ Add user to dependencies
+  }, [user, load]);
 
   const toggleAdmin = async (uid: string, newVal: boolean) => {
     const key = prompt('Enter ADMIN_API_KEY to confirm:');

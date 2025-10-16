@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/context/AuthProvider'; // Adjust path to your AuthProvider
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@/context/AuthProvider';
 
 type Report = {
   id: string;
@@ -13,12 +13,12 @@ type Report = {
 };
 
 export default function AdminMod() {
-  const { user } = useAuth(); // ✅ Get user from context
+  const { user } = useAuth();
   const [items, setItems] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) {
       setError('Sign in first.');
       return;
@@ -33,20 +33,20 @@ export default function AdminMod() {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Unknown error');
       setItems(j.items || []);
-      setError(null); // Clear any previous errors
+      setError(null);
     } catch (e: any) {
       console.error(e);
       setError(e.message || 'Failed to load moderation queue.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       load();
     }
-  }, [user]);
+  }, [user, load]);
 
   const act = async (action: string, report: Report) => {
     if (!user) return alert('Sign in first.');

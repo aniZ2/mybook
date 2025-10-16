@@ -1,6 +1,9 @@
+// ═══════════════════════════════════════════════════════════
+// 2. VoteForNextRead.tsx - Fixed
+// ═══════════════════════════════════════════════════════════
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import { getDbOrThrow } from '@/lib/firebase';
 import { BookOpen, ThumbsUp, Loader2, Check, RefreshCcw, PlayCircle, Crown } from 'lucide-react';
@@ -25,11 +28,7 @@ export default function VoteForNextRead({ clubSlug, isAdmin }: Props) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchCandidates();
-  }, [clubSlug]);
-
-  const fetchCandidates = async () => {
+  const fetchCandidates = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/clubs/${clubSlug}`);
@@ -41,7 +40,11 @@ export default function VoteForNextRead({ clubSlug, isAdmin }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clubSlug]);
+
+  useEffect(() => {
+    fetchCandidates();
+  }, [fetchCandidates]);
 
   const handleVote = async (bookSlug: string) => {
     if (voted || busy) return;
@@ -73,7 +76,6 @@ export default function VoteForNextRead({ clubSlug, isAdmin }: Props) {
     }
   };
 
-  /* ─────────────── Admin Controls ─────────────── */
   const adminAction = async (action: 'start' | 'declare' | 'reset') => {
     if (!isAdmin) return;
     try {
@@ -99,8 +101,6 @@ export default function VoteForNextRead({ clubSlug, isAdmin }: Props) {
       alert(err instanceof Error ? err.message : 'Error performing action');
     }
   };
-
-  /* ─────────────── UI Rendering ─────────────── */
 
   if (loading) {
     return (

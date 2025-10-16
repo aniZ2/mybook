@@ -11,8 +11,6 @@ import {
   Plus,
   Calendar
 } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
-import { getDbOrThrow } from '@/lib/firebase';
 import AddBookPanel from './AddBookPanel';
 import styles from './Club.module.css';
 
@@ -84,7 +82,9 @@ export default function ClubHeader({
         const newCount = memberCount + 1;
         setMemberCount(newCount);
         onJoinSuccess?.(newCount);
-      } else alert(data.error || 'Failed to join club');
+      } else {
+        alert(data.error || 'Failed to join club');
+      }
     } catch (err) {
       console.error(err);
       alert('Error joining club');
@@ -110,7 +110,9 @@ export default function ClubHeader({
         const newCount = Math.max(0, memberCount - 1);
         setMemberCount(newCount);
         onJoinSuccess?.(newCount);
-      } else alert(data.error || 'Failed to leave club');
+      } else {
+        alert(data.error || 'Failed to leave club');
+      }
     } catch (err) {
       console.error(err);
       alert('Error leaving club');
