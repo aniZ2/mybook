@@ -184,29 +184,6 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
     setShowShareModal(false);
   };
 
-  /* ─────────── Buy Links ─────────── */
-  const amazonUrl =
-    book?.asin
-      ? `https://www.amazon.com/dp/${book.asin}`
-      : book?.meta?.isbn13 || book?.meta?.isbn10
-      ? `https://www.amazon.com/s?k=${encodeURIComponent(
-          book.meta?.isbn13 || book.meta?.isbn10!
-        )}`
-      : book?.buyLink || null;
-
-  const bnUrl =
-    book?.meta?.isbn13 || book?.meta?.isbn10
-      ? `https://www.barnesandnoble.com/s/${encodeURIComponent(
-          book.meta?.isbn13 || book.meta?.isbn10!
-        )}`
-      : book?.bnLink || null;
-
-  const googleUrl =
-    book?.googleLink ||
-    (book?.title
-      ? `https://books.google.com?q=${encodeURIComponent(book.title)}`
-      : null);
-
   /* ─────────── UI ─────────── */
   if (loading)
     return (
@@ -283,39 +260,6 @@ export default function BookDetailsClient({ slug }: { slug: string }) {
               {book.publisher && <p>Publisher: {book.publisher}</p>}
               {book.publishedDate && <p>Published: {book.publishedDate}</p>}
               {book.meta?.isbn13 && <p>ISBN-13: {book.meta.isbn13}</p>}
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              {amazonUrl && (
-                
-                  href={amazonUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition"
-                >
-                  🛒 Amazon
-                </a>
-              )}
-              {bnUrl && (
-                
-                  href={bnUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
-                >
-                  📗 Barnes & Noble
-                </a>
-              )}
-              {googleUrl && (
-                
-                  href={googleUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-                >
-                  📘 Google Books
-                </a>
-              )}
             </div>
 
             <div className="flex gap-3 mt-5">
