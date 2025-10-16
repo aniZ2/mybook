@@ -14,11 +14,11 @@ function slugifyTitle(title: string): string {
 /* ─────────────── POST /api/clubs/[slug]/books ─────────────── */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
     const dbAdmin = getAdminDb();
-    const { slug } = params;
+    const { slug } = await context.params; // ✅ FIXED
 
     // Verify authentication
     const authHeader = req.headers.get('authorization');
@@ -49,16 +49,13 @@ export async function POST(
       return NextResponse.json({ error: 'Club not found' }, { status: 404 });
     const club = clubSnap.data();
 
-    // Only owner can modify books
     if (club?.ownerUid !== userId)
       return NextResponse.json(
         { error: 'Only admins can modify club books' },
         { status: 403 }
       );
 
-    // ─────────────────────────────
-    //  🟦 ROUND RESET
-    // ─────────────────────────────
+    // ───────────── ROUND RESET ─────────────
     if (resetRound) {
       const votesSnap = await dbAdmin.collection(`clubs/${slug}/votes`).get();
       const deletions = votesSnap.docs.map((doc) => doc.ref.delete());
@@ -74,9 +71,7 @@ export async function POST(
       return NextResponse.json({ success: true, message: 'Voting round reset' });
     }
 
-    // ─────────────────────────────
-    //  🟨 NOMINATE BOOK FOR VOTE
-    // ─────────────────────────────
+    // ───────────── NOMINATE FOR NEXT ─────────────
     if (nominateForNext && (title || bookSlugOverride)) {
       const bookSlug = bookSlugOverride || slugifyTitle(title);
       const bookRef = dbAdmin.collection('books').doc(bookSlug);
@@ -105,12 +100,9 @@ export async function POST(
       });
     }
 
-    // ─────────────────────────────
-    //  🟩 DECLARE WINNER / CURRENT
-    // ─────────────────────────────
+    // ───────────── DECLARE WINNER ─────────────
     if (setAsCurrentlyReading && (title || bookSlugOverride)) {
       const bookSlug = bookSlugOverride || slugifyTitle(title);
-
       const votesSnap = await dbAdmin.collection(`clubs/${slug}/votes`).get();
       const deletions = votesSnap.docs.map((doc) => doc.ref.delete());
       await Promise.all(deletions);
@@ -148,9 +140,7 @@ export async function POST(
       });
     }
 
-    // ─────────────────────────────
-    //  🟦 DEFAULT: ADD TO LIBRARY
-    // ─────────────────────────────
+    // ───────────── DEFAULT ADD ─────────────
     if (!title || !author) {
       return NextResponse.json(
         { error: 'Title and author required' },
@@ -196,11 +186,11 @@ export async function POST(
 /* ─────────────── GET /api/clubs/[slug]/books ─────────────── */
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
     const dbAdmin = getAdminDb();
-    const { slug } = params;
+    const { slug } = await context.params; // ✅ FIXED
 
     const clubRef = dbAdmin.collection('clubs').doc(slug);
     const clubSnap = await clubRef.get();
@@ -218,23 +208,51 @@ export async function GET(
     // Current
     if (currentBookId) {
       const s = await dbAdmin.collection('books').doc(currentBookId).get();
-      if (s.exists) books.push({ id: s.id, slug: s.id, ...s.data(), isCurrentlyReading: true });
+      if (s.exists)
+        books.push({
+          id: s.id,
+          slug: s.id,
+          ...s.data(),
+          isCurrentlyReading: true,
+        });
     }
 
     // Past
     if (pastBookIds.length > 0) {
       const snaps = await Promise.all(
-        pastBookIds.map((id: string) => dbAdmin.collection('books').doc(id).get())
+        pastBookIds.map((id: string) =>
+          dbAdmin.collection('books').doc(id).get()
+        )
       );
-      snaps.forEach((s) => s.exists && books.push({ id: s.id, slug: s.id, ...s.data(), isCurrentlyReading: false }));
+      snaps.forEach(
+        (s) =>
+          s.exists &&
+          books.push({
+            id: s.id,
+            slug: s.id,
+            ...s.data(),
+            isCurrentlyReading: false,
+          })
+      );
     }
 
     // Candidates
     if (nextCandidates.length > 0) {
       const snaps = await Promise.all(
-        nextCandidates.map((id: string) => dbAdmin.collection('books').doc(id).get())
+        nextCandidates.map((id: string) =>
+          dbAdmin.collection('books').doc(id).get()
+        )
       );
-      snaps.forEach((s) => s.exists && candidates.push({ id: s.id, slug: s.id, ...s.data(), isCandidate: true }));
+      snaps.forEach(
+        (s) =>
+          s.exists &&
+          candidates.push({
+            id: s.id,
+            slug: s.id,
+            ...s.data(),
+            isCandidate: true,
+          })
+      );
     }
 
     return NextResponse.json({
@@ -244,6 +262,9 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error fetching club books:', error);
-    return NextResponse.json({ error: 'Failed to fetch club books' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch club books' },
+      { status: 500 }
+    );
   }
 }

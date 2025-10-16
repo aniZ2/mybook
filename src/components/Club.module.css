@@ -1470,3 +1470,61 @@
   justify-content: center;
   margin-top: 1.5rem;
 }
+
+.clubTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Add book under profile icon */
+.iconAddBookButton {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #000;
+  background: linear-gradient(135deg, #fde047, #fb923c);
+  border: none;
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(250, 204, 21, 0.3);
+}
+
+.iconAddBookButton:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #facc15, #f97316);
+}
+
+/* Compact header for mobile */
+@media (max-width: 640px) {
+  .frostedContainer {
+    padding: 0.75rem 1rem;
+  }
+
+  .clubIconWrapper img {
+    width: 58px;
+    height: 58px;
+  }
+
+  .clubName {
+    font-size: 1.05rem;
+    line-height: 1.2;
+  }
+
+  .clubMeta {
+    font-size: 0.75rem;
+    gap: 0.3rem;
+  }
+
+  .iconAddBookButton {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+  }
+}

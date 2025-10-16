@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, use } from 'react'; // 👈 add `use`
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import {
@@ -44,12 +44,14 @@ interface Book {
   description?: string;
 }
 
+// ✅ Update the signature: params is now a Promise
 export default function BookDiscussionPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const { slug } = params;
+  const { slug } = use(params); // ✅ unwrap with React.use()
+
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const clubSlug = searchParams.get('club');
@@ -60,7 +62,8 @@ export default function BookDiscussionPage({
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [globalView, setGlobalView] = useState(false);
-  const [clubVisibility, setClubVisibility] = useState<'public' | 'private'>('private');
+  const [clubVisibility, setClubVisibility] =
+    useState<'public' | 'private'>('private');
 
   /* ─────────────── Fetch book ─────────────── */
   useEffect(() => {
@@ -89,7 +92,6 @@ export default function BookDiscussionPage({
   useEffect(() => {
     let q;
     if (globalView) {
-      // ✅ Global mode → only show messages from public clubs or no club
       q = query(
         collection(db, 'books', slug, 'discussions'),
         where('clubVisibility', 'in', ['public', null]),
@@ -97,7 +99,6 @@ export default function BookDiscussionPage({
         limit(50)
       );
     } else if (clubSlug) {
-      // ✅ Club-only mode → only show this club’s messages
       q = query(
         collection(db, 'books', slug, 'discussions'),
         where('clubSlug', '==', clubSlug),
@@ -129,7 +130,6 @@ export default function BookDiscussionPage({
     let clubVisToSave: 'public' | 'private' | null = null;
 
     if (!globalView && clubSlug) {
-      // Fetch visibility before posting
       const clubSnap = await getDoc(doc(db, 'clubs', clubSlug));
       clubVisToSave = clubSnap.data()?.visibility || 'private';
     }
@@ -140,7 +140,7 @@ export default function BookDiscussionPage({
       text,
       createdAt: serverTimestamp(),
       clubSlug: globalView ? null : clubSlug,
-      clubVisibility: globalView ? 'public' : clubVisToSave, // 👈 key line
+      clubVisibility: globalView ? 'public' : clubVisToSave,
     });
   };
 
@@ -156,7 +156,6 @@ export default function BookDiscussionPage({
 
   return (
     <div className={styles.page}>
-      {/* Book Header */}
       <div className={styles.bookHeader}>
         {book.coverUrl ? (
           <img src={book.coverUrl} alt={book.title} className={styles.cover} />
@@ -171,7 +170,6 @@ export default function BookDiscussionPage({
         </div>
       </div>
 
-      {/* View Toggle */}
       {clubSlug && (
         <div className={styles.viewToggle}>
           <button
@@ -189,7 +187,6 @@ export default function BookDiscussionPage({
         </div>
       )}
 
-      {/* Discussion Feed */}
       <div className={styles.chatSection}>
         <h2 className={styles.sectionTitle}>
           <MessageCircle size={18} />{' '}
@@ -228,7 +225,6 @@ export default function BookDiscussionPage({
         )}
       </div>
 
-      {/* Message Input */}
       {user ? (
         <form onSubmit={handleSend} className={styles.inputBar}>
           <input

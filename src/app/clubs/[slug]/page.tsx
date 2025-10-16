@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import ClubHeader from '@/components/ClubHeader';
 import ClubFeed from '@/components/ClubFeed';
@@ -49,8 +49,14 @@ interface ClubData {
   announcements?: Announcement[];
 }
 
-export default function ClubDetailPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+// ✅ Updated params type to Promise
+export default function ClubDetailPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = use(params); // ✅ unwrap new Promise-style params
+
   const { user } = useAuth();
   const [clubData, setClubData] = useState<ClubData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,13 +76,13 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
       const res = await fetch(`/api/clubs/${slug}`, { headers });
       if (!res.ok) throw new Error('Club not found');
       const data = await res.json();
-      
+
       console.log('📊 Fetched club data:', {
         currentBookId: data.club?.currentBookId,
         pastBookIds: data.club?.pastBookIds,
-        booksCount: data.club?.booksCount
+        booksCount: data.club?.booksCount,
       });
-      
+
       setClubData(data);
     } catch (err) {
       console.error('Error fetching club data:', err);
@@ -106,12 +112,12 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
   const handleBookAdded = async () => {
     console.log('📚 Book added, refreshing data...');
     await fetchClubData();
-    setRefreshBooks(prev => prev + 1);
+    setRefreshBooks((prev) => prev + 1);
   };
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       alert('Please sign in to create a post');
       return;
@@ -123,12 +129,12 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
 
     try {
       const token = await (user as any).getIdToken();
-      
+
       const response = await fetch(`/api/clubs/${slug}/posts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ content: postContent.trim() }),
       });
@@ -170,46 +176,34 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
 
   return (
     <main className={styles.redditLayout}>
-      {/* Sticky Club Header */}
       <motion.div
         className={styles.headerContainer}
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <ClubHeader 
-          club={club} 
+        <ClubHeader
+          club={club}
           currentUserId={user?.uid}
           onJoinSuccess={handleJoinSuccess}
           onBookAdded={handleBookAdded}
         />
       </motion.div>
 
-      {/* Content Wrapper */}
       <div className={styles.contentWrapper}>
-        {/* Main Feed Area */}
         <section className={styles.feedArea}>
-          {/* Club Books */}
-          <ClubBooks 
-            clubSlug={slug}
-            key={refreshBooks}
-          />
+          <ClubBooks clubSlug={slug} key={refreshBooks} />
 
-          {/* Vote for Next Read */}
-          <VoteForNextRead 
+          <VoteForNextRead
             clubSlug={slug}
             isAdmin={user?.uid === club.ownerUid}
           />
 
-          {/* Events & Announcements */}
-          {((events && events.length > 0) || (announcements && announcements.length > 0)) && (
-            <ClubSpotlight 
-              events={events}
-              announcements={announcements}
-            />
+          {((events && events.length > 0) ||
+            (announcements && announcements.length > 0)) && (
+            <ClubSpotlight events={events} announcements={announcements} />
           )}
 
-          {/* Create Post Section */}
           {user && (
             <motion.div
               className={styles.createPostCard}
@@ -223,7 +217,9 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
                   onClick={() => setShowCreatePost(true)}
                 >
                   <div className={styles.userAvatar}>
-                    {user.displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
+                    {user.displayName?.[0]?.toUpperCase() ||
+                      user.email?.[0]?.toUpperCase() ||
+                      '?'}
                   </div>
                   <span className={styles.createPostPlaceholder}>
                     Share something with the club...
@@ -279,7 +275,6 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
             </motion.div>
           )}
 
-          {/* Feed */}
           {posts.length > 0 ? (
             <ClubFeed posts={posts} />
           ) : (
@@ -292,7 +287,7 @@ export default function ClubDetailPage({ params }: { params: { slug: string } })
               <h3>No posts yet 👀</h3>
               <p>Be the first to share something uplifting today ✨</p>
               {user && !showCreatePost && (
-                <button 
+                <button
                   className={styles.newPostButton}
                   onClick={() => setShowCreatePost(true)}
                 >

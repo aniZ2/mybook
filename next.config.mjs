@@ -1,13 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   output: 'standalone',
 
-  experimental: {
-    typedRoutes: false,
-    serverComponentsExternalPackages: ['firebase-admin'],
-  },
+  // ✅ swcMinify is now always true by default — remove it.
+  // ✅ experimental.* keys moved to root-level config.
+
+  // ✅ Replace old experimental flags:
+  typedRoutes: false,
+  serverExternalPackages: ['firebase-admin'],
 
   images: {
     remotePatterns: [
@@ -24,8 +25,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'res.cloudinary.com', pathname: '/**' },
     ],
     formats: ['image/webp', 'image/avif'],
-
-    // ✅ Add this:
     unoptimized: process.env.NODE_ENV === 'development',
   },
 };

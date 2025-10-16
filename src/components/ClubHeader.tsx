@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   Loader2,
   Plus,
-  Calendar
+  Calendar,
 } from 'lucide-react';
 import Link from 'next/link';
 import { collection, getDocs } from 'firebase/firestore';
@@ -42,7 +42,7 @@ export default function ClubHeader({
   club,
   currentUserId,
   onJoinSuccess,
-  onBookAdded
+  onBookAdded,
 }: ClubHeaderProps) {
   const [isMember, setIsMember] = useState(
     club.memberIds?.includes(currentUserId || '') ?? false
@@ -55,7 +55,6 @@ export default function ClubHeader({
 
   const isAdmin = club.ownerUid === currentUserId;
 
-  // ─────────────── Helpers ───────────────
   const formatCount = (count: number) =>
     count >= 1000 ? (count / 1000).toFixed(1) + 'K' : count.toString();
 
@@ -63,13 +62,15 @@ export default function ClubHeader({
     if (!dateString) return 'Recently';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric',
+      });
     } catch {
       return 'Recently';
     }
   };
 
-  // ─────────────── Fetch Club Books ───────────────
   const fetchBooks = useCallback(async () => {
     try {
       const db = getDbOrThrow();
@@ -86,24 +87,19 @@ export default function ClubHeader({
     fetchBooks();
   }, [fetchBooks]);
 
-  // ─────────────── Join / Leave Logic ───────────────
   const handleJoinClub = async () => {
-    if (!currentUserId) {
-      alert('Please log in to join this club');
-      return;
-    }
+    if (!currentUserId) return alert('Please log in to join this club');
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/clubs/${club.slug}/join`, {
+      const res = await fetch(`/api/clubs/${club.slug}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUserId })
+        body: JSON.stringify({ userId: currentUserId }),
       });
+      const data = await res.json();
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (res.ok) {
         setIsMember(true);
         const newCount = memberCount + 1;
         setMemberCount(newCount);
@@ -111,9 +107,8 @@ export default function ClubHeader({
       } else {
         alert(data.error || 'Failed to join club');
       }
-    } catch (error) {
-      console.error('Error joining club:', error);
-      alert('An error occurred while joining the club');
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsLoading(false);
     }
@@ -121,59 +116,47 @@ export default function ClubHeader({
 
   const handleLeaveClub = async () => {
     if (!currentUserId) return;
-
-    const confirmed = confirm('Are you sure you want to leave this club?');
-    if (!confirmed) return;
+    if (!confirm('Leave this club?')) return;
 
     setIsLoading(true);
-
     try {
-      const response = await fetch(`/api/clubs/${club.slug}/join`, {
+      const res = await fetch(`/api/clubs/${club.slug}/join`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUserId })
+        body: JSON.stringify({ userId: currentUserId }),
       });
+      const data = await res.json();
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (res.ok) {
         setIsMember(false);
         const newCount = Math.max(0, memberCount - 1);
         setMemberCount(newCount);
         onJoinSuccess?.(newCount);
-      } else {
-        alert(data.error || 'Failed to leave club');
-      }
-    } catch (error) {
-      console.error('Error leaving club:', error);
-      alert('An error occurred while leaving the club');
+      } else alert(data.error || 'Failed to leave club');
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ─────────────── Handle Book Added ───────────────
   const handleBookAdded = async () => {
     await fetchBooks();
     onBookAdded?.();
   };
 
-  // ─────────────── Render ───────────────
   return (
     <>
       <div className={styles.literaryLoungeHeader}>
-        {/* Ambient Background */}
         <div className={styles.ambientBackground}>
           <div className={`${styles.blurOrb} ${styles.orb1}`} />
           <div className={`${styles.blurOrb} ${styles.orb2}`} />
-          <div className={`${styles.blurOrb} ${styles.orb3}`} />
         </div>
 
-        {/* Frosted Header */}
         <div className={styles.frostedContainer}>
           <div className={styles.headerContent}>
-            {/* Club Identity Section */}
             <div className={styles.clubIdentity}>
+              {/* Club Icon */}
               <div className={styles.clubIconWrapper}>
                 {club.iconUrl ? (
                   <img
@@ -186,108 +169,87 @@ export default function ClubHeader({
                     <Heart className={styles.iconHeart} />
                   </div>
                 )}
+
+                {/* Add Book directly below icon */}
+                {isAdmin && (
+                  <button
+                    className={styles.iconAddBookButton}
+                    onClick={() => setShowAddBookPanel(true)}
+                  >
+                    <Plus size={14} />
+                    Add Book
+                  </button>
+                )}
               </div>
 
+              {/* Club Info */}
               <div className={styles.clubInfo}>
-                <h1 className={styles.clubName}>{club.name}</h1>
+                <div className={styles.clubTitleRow}>
+                  <h1 className={styles.clubName}>{club.name}</h1>
 
-                {/* Description with Show More */}
-                {club.description && (
-                  <div className={styles.clubTaglineWrapper}>
-                    <p
-                      className={`${styles.clubTagline} ${
-                        showFullDesc ? styles.expanded : ''
-                      }`}
+                  {/* Member badge beside title */}
+                  {isMember ? (
+                    <div
+                      className={styles.memberBadge}
+                      onClick={handleLeaveClub}
                     >
-                      {club.description}
-                    </p>
-                    {club.description.length > 80 && (
-                      <button
-                        className={styles.toggleDescBtn}
-                        onClick={() => setShowFullDesc((prev) => !prev)}
-                      >
-                        {showFullDesc ? 'Show less' : 'Show more'}
-                      </button>
-                    )}
-                  </div>
+                      <CheckCircle2 className={styles.memberIcon} />
+                      {isLoading ? '...' : 'Member'}
+                    </div>
+                  ) : (
+                    <button
+                      className={styles.joinButton}
+                      onClick={handleJoinClub}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2
+                            className={styles.joinIcon}
+                            style={{ animation: 'spin 1s linear infinite' }}
+                          />
+                          ...
+                        </>
+                      ) : (
+                        <>
+                          <Heart className={styles.joinIcon} />
+                          Join
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Description */}
+                {club.description && (
+                  <p
+                    className={`${styles.clubTagline} ${
+                      showFullDesc ? styles.expanded : ''
+                    }`}
+                  >
+                    {club.description}
+                  </p>
                 )}
 
-                {/* Meta Section */}
+                {/* Meta */}
                 <div className={styles.clubMeta}>
-                  <span className={styles.metaItem}>
-                    <Users className={styles.metaIcon} />
-                    {formatCount(memberCount)} members
+                  <span>
+                    <Users size={14} /> {formatCount(memberCount)} members
                   </span>
-                  <span className={styles.metaDivider}>•</span>
-                  <span className={styles.metaItem}>
-                    <BookOpen className={styles.metaIcon} />
-                    {formatCount(club.booksCount || 0)} books
+                  <span>•</span>
+                  <span>
+                    <BookOpen size={14} /> {formatCount(club.booksCount || 0)} books
                   </span>
-                  <span className={styles.metaDivider}>•</span>
-                  <span className={styles.metaItem}>
-                    <Calendar className={styles.metaIcon} />
-                    {formatDate(club.createdAt)}
+                  <span>•</span>
+                  <span>
+                    <Calendar size={14} /> {formatDate(club.createdAt)}
                   </span>
-                  {club.category && (
-                    <>
-                      <span className={styles.metaDivider}>•</span>
-                      <span className={styles.metaBadge}>
-                        <Sparkles className={styles.metaIcon} />
-                        {club.category}
-                      </span>
-                    </>
-                  )}
                 </div>
               </div>
-            </div>
-
-            {/* Club Actions */}
-            <div className={styles.clubActions}>
-              {isAdmin && (
-                <button
-                  className={styles.addBookButton}
-                  onClick={() => setShowAddBookPanel(true)}
-                >
-                  <Plus size={18} />
-                  Add Book
-                </button>
-              )}
-
-              {isMember ? (
-                <div
-                  className={styles.memberBadge}
-                  onClick={handleLeaveClub}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <CheckCircle2 className={styles.memberIcon} />
-                  {isLoading ? 'Loading...' : 'Member'}
-                </div>
-              ) : (
-                <button
-                  className={styles.joinButton}
-                  onClick={handleJoinClub}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2
-                        className={styles.joinIcon}
-                        style={{ animation: 'spin 1s linear infinite' }}
-                      />
-                      Joining...
-                    </>
-                  ) : (
-                    <>
-                      <Heart className={styles.joinIcon} />
-                      Join Club
-                    </>
-                  )}
-                </button>
-              )}
             </div>
           </div>
 
-          {/* ─────────────── Club Books Section ─────────────── */}
+          {/* Club Books */}
           {clubBooks.length > 0 && (
             <div className={styles.clubBooksSection}>
               <h4 className={styles.booksTitle}>Club Library</h4>
@@ -303,11 +265,10 @@ export default function ClubHeader({
                         src={book.coverUrl}
                         alt={book.title}
                         className={styles.bookCoverThumb}
-                        title={`${book.title} by ${book.author}`}
                       />
                     ) : (
                       <div className={styles.noCoverThumb}>
-                        <BookOpen size={22} />
+                        <BookOpen size={20} />
                       </div>
                     )}
                   </Link>
@@ -318,7 +279,6 @@ export default function ClubHeader({
         </div>
       </div>
 
-      {/* ─────────────── Add Book Panel ─────────────── */}
       {showAddBookPanel && (
         <AddBookPanel
           clubSlug={club.slug}
