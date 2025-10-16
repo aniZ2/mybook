@@ -2,22 +2,28 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getDbOrThrow } from '@/lib/firebase';
 import type { ReviewDoc } from '@/types/firestore';
 
 export default function ReviewsList({ slug }: { slug: string }) {
   const [reviews, setReviews] = useState<ReviewDoc[]>([]);
 
   useEffect(() => {
+    const db = getDbOrThrow();
+    if (!db) return; // ✅ Prevent null Firestore during SSR or uninitialized state
+
     const q = query(
       collection(db, 'books', slug, 'reviews'),
       orderBy('createdAt', 'desc')
     );
-    return onSnapshot(q, snap => {
+
+    const unsubscribe = onSnapshot(q, (snap) => {
       setReviews(
-        snap.docs.map(d => ({ id: d.id, ...(d.data() as ReviewDoc) }))
+        snap.docs.map((d) => ({ id: d.id, ...(d.data() as ReviewDoc) }))
       );
     });
+
+    return () => unsubscribe();
   }, [slug]);
 
   const summary = useMemo(() => {
@@ -38,7 +44,7 @@ export default function ReviewsList({ slug }: { slug: string }) {
       </p>
 
       <div style={{ display: 'grid', gap: '.75rem', marginTop: '.5rem' }}>
-        {reviews.map(r => (
+        {reviews.map((r) => (
           <article key={r.id} className="panel">
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <strong>{r.userName}</strong>

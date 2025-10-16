@@ -1,102 +1,104 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { getDbOrThrow } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthProvider';
-import type { ReviewDoc } from '@/types/firestore';
 
 export default function AddReview({ slug }: { slug: string }) {
   const { user } = useAuth();
-  const [rating, setRating] = useState<number>(0);
   const [text, setText] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [loading, setLoading] = useState(false);
 
-  async function submit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      alert('Please sign in to review.');
-      return;
-    }
-    if (rating < 1 || rating > 5) {
-      alert('Rating must be 1–5');
-      return;
-    }
-    
-    if (!db) {
-      alert('Database not initialized');
+      alert('Please log in to leave a review.');
       return;
     }
 
-    setBusy(true);
+    const db = getDbOrThrow();
+    if (!db) return;
+
+    setLoading(true);
     try {
-      const review: Omit<ReviewDoc, 'id'> = {
+      await addDoc(collection(db, 'books', slug, 'reviews'), {
         userId: user.uid,
         userName: user.displayName || 'Anonymous',
         rating,
         text,
         createdAt: serverTimestamp(),
-      };
-
-      await addDoc(collection(db, 'books', slug, 'reviews'), review);
-
-      setRating(0);
+      });
       setText('');
-      alert('Review posted successfully! ✅');
-    } catch (error) {
-      console.error('Error posting review:', error);
-      alert('Failed to post review. Please try again.');
+      setRating(5);
+      alert('Review submitted!');
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      alert('Failed to submit review.');
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <form onSubmit={submit} className="panel" style={{ marginTop: '1rem' }}>
-      <div style={{ display: 'flex', gap: '.6rem', alignItems: 'center' }}>
-        <label className="muted">Your rating:</label>
-        <StarPicker value={rating} onChange={setRating} />
-      </div>
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        marginTop: '1.5rem',
+        display: 'grid',
+        gap: '.75rem',
+        maxWidth: '600px',
+      }}
+    >
+      <h3 className="h2">Add your review</h3>
+
+      <label>
+        Rating:{' '}
+        <select
+          value={rating}
+          onChange={(e) => setRating(Number(e.target.value))}
+          disabled={loading}
+          style={{ marginLeft: '.5rem' }}
+        >
+          {[5, 4, 3, 2, 1].map((r) => (
+            <option key={r} value={r}>
+              {r} ★
+            </option>
+          ))}
+        </select>
+      </label>
+
       <textarea
-        className="input"
-        placeholder={user ? 'Share your thoughts…' : 'Sign in to review'}
+        placeholder="Write your thoughts..."
         value={text}
-        onChange={e => setText(e.target.value)}
-        disabled={!user || busy}
+        onChange={(e) => setText(e.target.value)}
         rows={4}
-        style={{ marginTop: '.6rem' }}
+        style={{
+          resize: 'vertical',
+          borderRadius: '.5rem',
+          border: '1px solid #444',
+          padding: '.75rem',
+          background: '#111',
+          color: '#fff',
+        }}
+        disabled={loading}
       />
+
       <button
-        className="btn btn-primary"
-        disabled={!user || busy || rating === 0}
-        style={{ marginTop: '.6rem' }}
+        type="submit"
+        disabled={loading || !text.trim()}
+        style={{
+          background: loading ? '#555' : '#FFD54F',
+          color: loading ? '#999' : '#000',
+          borderRadius: '.5rem',
+          padding: '.5rem 1rem',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          fontWeight: 'bold',
+        }}
       >
-        {busy ? 'Posting…' : 'Post review'}
+        {loading ? 'Submitting...' : 'Submit Review'}
       </button>
     </form>
-  );
-}
-
-function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-  return (
-    <div>
-      {[1, 2, 3, 4, 5].map(n => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          aria-label={`${n} star${n > 1 ? 's' : ''}`}
-          className="btn"
-          style={{
-            padding: '.2rem .4rem',
-            marginRight: '.2rem',
-            background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.3)',
-          }}
-        >
-          {n <= value ? '★' : '☆'}
-        </button>
-      ))}
-    </div>
   );
 }
