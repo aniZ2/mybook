@@ -30,14 +30,21 @@ function serialize(data: any): any {
   return out;
 }
 
-export async function GET(req: Request, { params }: { params: { slug: string } }) {
-  const slug = params.slug;
+// ✅ Next.js 15 fix: `params` is a Promise, so we await it before reading slug
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await context.params;
   console.log("📡 CLUB API REQUEST:", slug);
 
   try {
     if (!dbAdmin) {
       console.error("🔥 dbAdmin is null — Admin SDK not initialized.");
-      return NextResponse.json({ success: false, error: "Admin SDK missing" }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: "Admin SDK missing" },
+        { status: 500 }
+      );
     }
 
     // ✅ Verify user (optional)
@@ -56,7 +63,10 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
     const clubRef = dbAdmin.collection("clubs").doc(slug);
     const clubSnap = await clubRef.get();
     if (!clubSnap.exists) {
-      return NextResponse.json({ success: false, error: "Club not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Club not found" },
+        { status: 404 }
+      );
     }
 
     const clubData = clubSnap.data() || {};
@@ -74,8 +84,12 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
     ] = await Promise.all([
       clubRef.collection("books").limit(12).get(),
       clubRef.collection("members").limit(12).get(),
-      clubRef.collection("posts").orderBy("createdAt", "desc").limit(20).get(),
-      clubRef.collection("events")
+      clubRef.collection("posts")
+        .orderBy("createdAt", "desc")
+        .limit(20)
+        .get(),
+      clubRef
+        .collection("events")
         .where("date", ">=", new Date().toISOString())
         .orderBy("date", "asc")
         .limit(5)
@@ -112,11 +126,23 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
         roundActive,
         nextCandidates,
         votes,
-        books: booksSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
-        members: membersSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
+        books: booksSnap.docs.map((d) => ({
+          id: d.id,
+          ...serialize(d.data()),
+        })),
+        members: membersSnap.docs.map((d) => ({
+          id: d.id,
+          ...serialize(d.data()),
+        })),
         posts,
-        events: eventsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
-        announcements: announcementsSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) })),
+        events: eventsSnap.docs.map((d) => ({
+          id: d.id,
+          ...serialize(d.data()),
+        })),
+        announcements: announcementsSnap.docs.map((d) => ({
+          id: d.id,
+          ...serialize(d.data()),
+        })),
       },
       { status: 200 }
     );

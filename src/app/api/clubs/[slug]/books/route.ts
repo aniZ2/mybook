@@ -49,11 +49,18 @@ export async function POST(
       return NextResponse.json({ error: 'Club not found' }, { status: 404 });
     const club = clubSnap.data();
 
-    if (club?.ownerUid !== userId)
+    // 🔒 Verify admin privileges
+    const memberDoc = await clubRef.collection('members').doc(userId).get();
+    const memberData = memberDoc.exists ? memberDoc.data() : null;
+    const isAdmin = memberData?.role === 'admin';
+    const isOwner = club?.ownerUid === userId;
+
+    if (!isAdmin && !isOwner) {
       return NextResponse.json(
         { error: 'Only admins can modify club books' },
         { status: 403 }
       );
+    }
 
     // ───────────── ROUND RESET ─────────────
     if (resetRound) {

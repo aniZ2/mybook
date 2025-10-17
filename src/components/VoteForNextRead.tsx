@@ -1,13 +1,10 @@
-// ═══════════════════════════════════════════════════════════
-// 2. VoteForNextRead.tsx - Fixed
-// ═══════════════════════════════════════════════════════════
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
-import { getDbOrThrow } from '@/lib/firebase';
-import { BookOpen, ThumbsUp, Loader2, Check, RefreshCcw, PlayCircle, Crown } from 'lucide-react';
+import { Loader2, RefreshCcw, PlayCircle, Crown, Plus } from 'lucide-react';
 import styles from './VoteForNextRead.module.css';
+import BookSearchPanel, { BookItem } from '@/components/BookSearchPanel';
 
 interface Candidate {
   slug: string;
@@ -19,63 +16,67 @@ interface Candidate {
 interface Props {
   clubSlug: string;
   isAdmin?: boolean;
+  onRefresh?: () => void; // optional: for parent to refetch when nominations change
 }
 
-export default function VoteForNextRead({ clubSlug, isAdmin }: Props) {
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
+export default function VoteForNextRead({ clubSlug, isAdmin, onRefresh }: Props) {
   const [roundActive, setRoundActive] = useState(false);
-  const [voted, setVoted] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [showNominateForm, setShowNominateForm] = useState(false);
 
-  const fetchCandidates = useCallback(async () => {
+  /* ─────────────── Fetch Current Round ─────────────── */
+  const fetchStatus = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/clubs/${clubSlug}`);
       const data = await res.json();
-      setCandidates(data.nextCandidates || []);
       setRoundActive(data.roundActive || false);
     } catch (err) {
-      console.error('❌ Error loading candidates', err);
+      console.error('❌ Error loading round status', err);
     } finally {
       setLoading(false);
     }
   }, [clubSlug]);
 
   useEffect(() => {
-    fetchCandidates();
-  }, [fetchCandidates]);
+    fetchStatus();
+  }, [fetchStatus]);
 
-  const handleVote = async (bookSlug: string) => {
-    if (voted || busy) return;
-    setBusy(bookSlug);
-
+  /* ─────────────── Nominate a Book ─────────────── */
+  const handleNominateSelected = async (b: BookItem) => {
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-      if (!user) throw new Error('Sign in to vote');
+      if (!user) throw new Error('Sign in as admin');
       const token = await user.getIdToken();
 
-      const res = await fetch(`/api/clubs/${clubSlug}/votes`, {
+      const res = await fetch(`/api/clubs/${clubSlug}/books`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ bookSlug }),
+        body: JSON.stringify({
+          title: b.title,
+          author: b.authors?.[0] || 'Unknown',
+          coverUrl: b.cover || null,
+          nominateForNext: true,
+        }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to vote');
-      setVoted(true);
-      alert('✅ Your vote has been recorded!');
+      if (!res.ok) throw new Error(data.error || 'Nomination failed');
+
+      alert(`✅ “${b.title}” nominated for voting!`);
+      setShowNominateForm(false);
+      fetchStatus();
+      onRefresh?.(); // optional: notify parent to reload list
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Voting failed');
-    } finally {
-      setBusy(null);
+      alert(err instanceof Error ? err.message : 'Nomination failed');
     }
   };
 
+  /* ─────────────── Admin Actions ─────────────── */
   const adminAction = async (action: 'start' | 'declare' | 'reset') => {
     if (!isAdmin) return;
     try {
@@ -96,34 +97,26 @@ export default function VoteForNextRead({ clubSlug, isAdmin }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Action failed');
       alert(data.message || 'Action completed');
-      fetchCandidates();
+      fetchStatus();
+      onRefresh?.();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error performing action');
     }
   };
 
+  /* ─────────────── Render ─────────────── */
   if (loading) {
     return (
       <div className={styles.loading}>
-        <Loader2 className={styles.spinner} /> Loading nominations...
-      </div>
-    );
-  }
-
-  if (candidates.length === 0 && !roundActive && !isAdmin) {
-    return (
-      <div className={styles.emptyState}>
-        <BookOpen size={32} />
-        <p>No active voting rounds</p>
+        <Loader2 className={styles.spinner} /> Loading status...
       </div>
     );
   }
 
   return (
     <div className={styles.voteSection}>
-      <div className={styles.headerRow}>
-        <h3 className={styles.title}>Vote for the Next Read</h3>
-        {isAdmin && (
+      {isAdmin && (
+        <>
           <div className={styles.adminTools}>
             {!roundActive && (
               <button
@@ -150,50 +143,33 @@ export default function VoteForNextRead({ clubSlug, isAdmin }: Props) {
               </>
             )}
           </div>
-        )}
-      </div>
 
-      {roundActive ? (
-        <div className={styles.candidateList}>
-          {candidates.map((c) => (
-            <div key={c.slug} className={styles.candidateCard}>
-              <img
-                src={c.coverUrl || '/placeholder-book.png'}
-                alt={c.title}
-                className={styles.cover}
-              />
-              <div className={styles.info}>
-                <h4>{c.title}</h4>
-                <p>by {c.authorName}</p>
-              </div>
-              <button
-                onClick={() => handleVote(c.slug)}
-                disabled={voted || busy === c.slug}
-                className={voted ? styles.votedBtn : styles.voteBtn}
-              >
-                {voted ? (
-                  <>
-                    <Check size={16} /> Voted
-                  </>
-                ) : busy === c.slug ? (
-                  <>
-                    <Loader2 size={16} className="spin" /> Voting...
-                  </>
-                ) : (
-                  <>
-                    <ThumbsUp size={16} /> Vote
-                  </>
-                )}
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className={styles.inactiveText}>
-          {isAdmin
-            ? 'No active voting round. Start one when ready.'
-            : 'Voting round has not started yet.'}
-        </p>
+          {/* ─────────────── Nomination Tool ─────────────── */}
+          {!roundActive && (
+            <>
+              {!showNominateForm && (
+                <button
+                  onClick={() => setShowNominateForm(true)}
+                  className={styles.nominateBtn}
+                >
+                  <Plus size={16} /> Nominate a Book
+                </button>
+              )}
+
+              {showNominateForm && (
+                <div className={styles.nominateForm}>
+                  <BookSearchPanel onSelect={handleNominateSelected} />
+                  <button
+                    onClick={() => setShowNominateForm(false)}
+                    className={styles.cancelBtn}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
     </div>
   );

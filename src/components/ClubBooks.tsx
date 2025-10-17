@@ -7,8 +7,6 @@ import {
   collection,
   doc,
   setDoc,
-  deleteDoc,
-  getDocs,
   onSnapshot,
   increment,
   serverTimestamp,
@@ -23,6 +21,7 @@ import {
   ThumbsUp,
   Crown,
   RefreshCcw,
+  Plus,
 } from 'lucide-react';
 import styles from './Club.module.css';
 
@@ -50,6 +49,8 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
   const [nextCandidates, setNextCandidates] = useState<Book[]>([]);
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [roundActive, setRoundActive] = useState<boolean>(false);
+  const [nomTitle, setNomTitle] = useState('');
+  const [nomAuthor, setNomAuthor] = useState('');
 
   /* ─────────────── Fetch Books ─────────────── */
   useEffect(() => {
@@ -60,6 +61,8 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
         const res = await fetch(`/api/clubs/${clubSlug}/books`);
         const data = await res.json();
         setBooks(data.books || []);
+        setNextCandidates(data.candidates || []);
+        setRoundActive(data.roundActive || false);
       } catch (err) {
         console.error('❌ Error fetching books:', err);
       } finally {
@@ -69,52 +72,7 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
     fetchBooks();
   }, [clubSlug]);
 
-  /* ─────────────── Fetch + Auto-heal Club Meta ─────────────── */
-  useEffect(() => {
-    if (!clubSlug) return;
-    const clubRef = doc(db, 'clubs', clubSlug);
-
-    const unsub = onSnapshot(clubRef, async (snap) => {
-      const club = snap.data();
-
-      // 🧩 Auto-heal missing fields
-      if (!club || club.roundActive === undefined || !Array.isArray(club.nextCandidates)) {
-        console.warn(`⚙️ Auto-healing club meta for ${clubSlug}...`);
-        await setDoc(
-          clubRef,
-          {
-            roundActive: false,
-            nextCandidates: [],
-            trendingPool: [],
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-        setRoundActive(false);
-        setNextCandidates([]);
-        return;
-      }
-
-      setRoundActive(club.roundActive ?? false);
-
-      // 🔄 Derive candidates: prefer nextCandidates, fallback to trendingPool
-      let candidates = books.filter((b) =>
-        (club.nextCandidates || []).includes(b.slug)
-      );
-
-      if (candidates.length === 0 && club.trendingPool?.length > 0) {
-        candidates = books.filter((b) =>
-          club.trendingPool.includes(b.slug)
-        );
-      }
-
-      setNextCandidates(candidates);
-    });
-
-    return () => unsub();
-  }, [books, clubSlug, db]);
-
-  /* ─────────────── Real-time Vote Counts ─────────────── */
+  /* ─────────────── Real-time Votes ─────────────── */
   useEffect(() => {
     if (!clubSlug) return;
     const votesRef = collection(db, 'clubs', clubSlug, 'votes');
@@ -127,6 +85,37 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
     });
     return () => unsub();
   }, [clubSlug, db]);
+
+  /* ─────────────── Handle Nominate ─────────────── */
+  const handleNominate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAdmin || !user) return alert('Only admins can nominate.');
+    if (!nomTitle.trim()) return alert('Please enter a title.');
+
+    const token = await user.getIdToken();
+
+    const res = await fetch(`/api/clubs/${clubSlug}/books`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: nomTitle.trim(),
+        author: nomAuthor.trim() || 'Unknown',
+        nominateForNext: true,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || 'Nomination failed.');
+    } else {
+      alert('✅ Book nominated successfully!');
+      setNomTitle('');
+      setNomAuthor('');
+    }
+  };
 
   /* ─────────────── Vote ─────────────── */
   const handleVote = async (bookSlug: string) => {
@@ -152,61 +141,29 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({
-        bookSlug: book.slug,
+        bookSlugOverride: book.slug,
         title: book.title,
         author: book.authorName,
         setAsCurrentlyReading: true,
       }),
     });
 
-    const votesSnap = await getDocs(collection(db, 'clubs', clubSlug, 'votes'));
-    const deletions = votesSnap.docs.map((d) => deleteDoc(d.ref));
-    await Promise.all(deletions);
-
-    const clubRef = doc(db, 'clubs', clubSlug);
-    await setDoc(
-      clubRef,
-      {
-        nextCandidates: [],
-        roundActive: false,
-        roundEndedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    alert(`📚 "${book.title}" is now the next read! Votes cleared.`);
+    alert(`📚 "${book.title}" is now the next read!`);
   };
 
-  /* ─────────────── Start New Round ─────────────── */
-  const handleStartRound = async () => {
+  /* ─────────────── Reset Round ─────────────── */
+  const handleResetRound = async () => {
     if (!isAdmin || !user) return;
+    const token = await user.getIdToken();
 
-    const clubRef = doc(db, 'clubs', clubSlug);
+    await fetch(`/api/clubs/${clubSlug}/books`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ resetRound: true }),
+    });
 
-    // Pull top trending titles for candidates
-    const trendingSnap = await getDocs(collection(db, 'books'));
-    const trendingBooks: string[] = [];
-    trendingSnap.docs
-      .sort((a, b) => (b.data().search_score_24h || 0) - (a.data().search_score_24h || 0))
-      .slice(0, 5)
-      .forEach((b) => trendingBooks.push(b.id));
-
-    await setDoc(
-      clubRef,
-      {
-        roundActive: true,
-        nextCandidates: trendingBooks,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    alert('🗳️ Voting round started with trending books!');
+    alert('🔄 Voting round reset.');
   };
-
-  /* ─────────────── Derived Sets ─────────────── */
-  const currentBook = books.find((b) => b.isCurrentlyReading);
-  const pastBooks = books.filter((b) => !b.isCurrentlyReading);
 
   /* ─────────────── UI ─────────────── */
   if (loading)
@@ -216,6 +173,9 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
         <p>Loading books...</p>
       </div>
     );
+
+  const currentBook = books.find((b) => b.isCurrentlyReading);
+  const pastBooks = books.filter((b) => !b.isCurrentlyReading);
 
   return (
     <div className={styles.booksSection}>
@@ -242,26 +202,50 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
         </div>
       )}
 
-      {/* NEXT READ VOTING */}
-      {roundActive && (
-        <div className={styles.nextReadSection}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>
-              <Library size={20} /> Vote for the Next Read
-            </h2>
-            {isAdmin && (
-              <button className={styles.roundBtn} onClick={handleStartRound}>
-                <RefreshCcw size={16} /> Restart Round
-              </button>
-            )}
+      {/* 🧾 NOMINATION FORM (Admins Only) */}
+      {isAdmin && (
+        <form onSubmit={handleNominate} className={styles.nominateForm}>
+          <h3>
+            <Plus size={16} /> Nominate a Book
+          </h3>
+          <div className={styles.nominateFields}>
+            <input
+              type="text"
+              placeholder="Book title..."
+              value={nomTitle}
+              onChange={(e) => setNomTitle(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Author (optional)"
+              value={nomAuthor}
+              onChange={(e) => setNomAuthor(e.target.value)}
+            />
+            <button type="submit">
+              <Plus size={14} /> Add
+            </button>
           </div>
+        </form>
+      )}
 
-          {nextCandidates.length === 0 && (
-            <p className={styles.emptyVoteNote}>
-              No candidates yet — pulling trending titles...
-            </p>
+      {/* NEXT READ VOTING */}
+      <div className={styles.nextReadSection}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>
+            <Library size={20} /> Vote for the Next Read
+          </h2>
+          {isAdmin && roundActive && (
+            <div className={styles.roundControls}>
+              <button onClick={handleResetRound} className={styles.roundBtn}>
+                <RefreshCcw size={14} /> Reset
+              </button>
+            </div>
           )}
+        </div>
 
+        {nextCandidates.length === 0 ? (
+          <p className={styles.emptyVoteNote}>No books nominated yet.</p>
+        ) : (
           <div className={styles.booksList}>
             {nextCandidates.map((book) => (
               <div key={book.id} className={styles.bookCard}>
@@ -279,7 +263,6 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
                     <p>by {book.authorName}</p>
                   </div>
                 </Link>
-
                 <div className={styles.voteControls}>
                   <button
                     className={styles.voteButton}
@@ -300,8 +283,8 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* PAST READS */}
       <div className={styles.pastBooksSection}>
@@ -329,15 +312,6 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
           ))}
         </div>
       </div>
-
-      {/* START ROUND BUTTON */}
-      {!roundActive && isAdmin && (
-        <div className={styles.roundControl}>
-          <button className={styles.roundBtn} onClick={handleStartRound}>
-            <RefreshCcw size={16} /> Start Next Round
-          </button>
-        </div>
-      )}
     </div>
   );
 }

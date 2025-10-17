@@ -5,13 +5,12 @@ import {
   Heart,
   Users,
   BookOpen,
-  Sparkles,
   CheckCircle2,
   Loader2,
   Plus,
+  Sparkles,
   Calendar,
 } from 'lucide-react';
-import Link from 'next/link';
 import { collection, getDocs } from 'firebase/firestore';
 import { getDbOrThrow } from '@/lib/firebase';
 import AddBookPanel from './AddBookPanel';
@@ -50,8 +49,8 @@ export default function ClubHeader({
   const [isLoading, setIsLoading] = useState(false);
   const [memberCount, setMemberCount] = useState(club.membersCount || 0);
   const [showAddBookPanel, setShowAddBookPanel] = useState(false);
-  const [clubBooks, setClubBooks] = useState<any[]>([]);
-  const [showFullDesc, setShowFullDesc] = useState(false);
+  const [showNominatePanel, setShowNominatePanel] = useState(false);
+  const [startingVote, setStartingVote] = useState(false);
 
   const isAdmin = club.ownerUid === currentUserId;
 
@@ -75,9 +74,7 @@ export default function ClubHeader({
     try {
       const db = getDbOrThrow();
       const booksRef = collection(db, 'clubs', club.slug, 'books');
-      const snap = await getDocs(booksRef);
-      const books = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setClubBooks(books);
+      await getDocs(booksRef);
     } catch (err) {
       console.error('Error fetching club books:', err);
     }
@@ -140,9 +137,23 @@ export default function ClubHeader({
     }
   };
 
-  const handleBookAdded = async () => {
-    await fetchBooks();
-    onBookAdded?.();
+  const handleStartVoting = async () => {
+    if (!isAdmin) return;
+    if (!confirm('Start voting for the next read?')) return;
+
+    setStartingVote(true);
+    try {
+      const res = await fetch(`/api/clubs/${club.slug}/votes/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) alert('Voting started!');
+      else alert('Failed to start voting.');
+    } catch (err) {
+      console.error('Error starting voting:', err);
+    } finally {
+      setStartingVote(false);
+    }
   };
 
   return (
@@ -170,15 +181,22 @@ export default function ClubHeader({
                   </div>
                 )}
 
-                {/* Add Book directly below icon */}
+                {/* Admin-only book actions */}
                 {isAdmin && (
-                  <button
-                    className={styles.iconAddBookButton}
-                    onClick={() => setShowAddBookPanel(true)}
-                  >
-                    <Plus size={14} />
-                    Add Book
-                  </button>
+                  <>
+                    <button
+                      className={styles.iconAddBookButton}
+                      onClick={() => setShowAddBookPanel(true)}
+                    >
+                      <Plus size={14} /> Add Book
+                    </button>
+                    <button
+                      className={styles.iconNominateButton}
+                      onClick={() => setShowNominatePanel(true)}
+                    >
+                      <Sparkles size={14} /> Nominate Book
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -187,51 +205,51 @@ export default function ClubHeader({
                 <div className={styles.clubTitleRow}>
                   <h1 className={styles.clubName}>{club.name}</h1>
 
-                  {/* Member badge beside title */}
-                  {isMember ? (
-                    <div
-                      className={styles.memberBadge}
-                      onClick={handleLeaveClub}
-                    >
-                      <CheckCircle2 className={styles.memberIcon} />
-                      {isLoading ? '...' : 'Member'}
-                    </div>
-                  ) : (
-                    <button
-                      className={styles.joinButton}
-                      onClick={handleJoinClub}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
+                  {/* Member + Start Voting Buttons */}
+                  <div className={styles.actionButtons}>
+                    {isMember ? (
+                      <div
+                        className={styles.memberBadge}
+                        onClick={handleLeaveClub}
+                      >
+                        <CheckCircle2 className={styles.memberIcon} />
+                        {isLoading ? '...' : 'Member'}
+                      </div>
+                    ) : (
+                      <button
+                        className={styles.joinButton}
+                        onClick={handleJoinClub}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
                           <Loader2
                             className={styles.joinIcon}
                             style={{ animation: 'spin 1s linear infinite' }}
                           />
-                          ...
-                        </>
-                      ) : (
-                        <>
+                        ) : (
                           <Heart className={styles.joinIcon} />
-                          Join
-                        </>
-                      )}
-                    </button>
-                  )}
+                        )}
+                        Join
+                      </button>
+                    )}
+
+                    {isAdmin && (
+                      <button
+                        className={styles.startVotingButton}
+                        onClick={handleStartVoting}
+                        disabled={startingVote}
+                      >
+                        <Sparkles size={14} />
+                        {startingVote ? 'Starting...' : 'Start Voting'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {/* Description */}
                 {club.description && (
-                  <p
-                    className={`${styles.clubTagline} ${
-                      showFullDesc ? styles.expanded : ''
-                    }`}
-                  >
-                    {club.description}
-                  </p>
+                  <p className={styles.clubTagline}>{club.description}</p>
                 )}
 
-                {/* Meta */}
                 <div className={styles.clubMeta}>
                   <span>
                     <Users size={14} /> {formatCount(memberCount)} members
@@ -248,44 +266,26 @@ export default function ClubHeader({
               </div>
             </div>
           </div>
-
-          {/* Club Books */}
-          {clubBooks.length > 0 && (
-            <div className={styles.clubBooksSection}>
-              <h4 className={styles.booksTitle}>Club Library</h4>
-              <div className={styles.bookCoversRow}>
-                {clubBooks.map((book) => (
-                  <Link
-                    key={book.id}
-                    href={`/book/${book.slug}`}
-                    className={styles.bookCoverLink}
-                  >
-                    {book.coverUrl ? (
-                      <img
-                        src={book.coverUrl}
-                        alt={book.title}
-                        className={styles.bookCoverThumb}
-                      />
-                    ) : (
-                      <div className={styles.noCoverThumb}>
-                        <BookOpen size={20} />
-                      </div>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
+      {/* Modals */}
       {showAddBookPanel && (
         <AddBookPanel
           clubSlug={club.slug}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
-          onBookAdded={handleBookAdded}
+          onBookAdded={onBookAdded}
           onClose={() => setShowAddBookPanel(false)}
+        />
+      )}
+      {showNominatePanel && (
+        <AddBookPanel
+          clubSlug={club.slug}
+          currentUserId={currentUserId}
+          isAdmin={isAdmin}
+          onBookAdded={onBookAdded}
+          onClose={() => setShowNominatePanel(false)}
         />
       )}
     </>
