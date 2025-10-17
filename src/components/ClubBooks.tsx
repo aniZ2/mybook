@@ -5,12 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthProvider';
 import {
   collection,
-  doc,
-  setDoc,
   onSnapshot,
-  increment,
-  serverTimestamp,
-  arrayUnion,
 } from 'firebase/firestore';
 import { getDbOrThrow } from '@/lib/firebase';
 import {
@@ -22,6 +17,7 @@ import {
   Crown,
   RefreshCcw,
   Plus,
+  Heart,
 } from 'lucide-react';
 import styles from './Club.module.css';
 
@@ -51,6 +47,10 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
   const [roundActive, setRoundActive] = useState<boolean>(false);
   const [nomTitle, setNomTitle] = useState('');
   const [nomAuthor, setNomAuthor] = useState('');
+  
+  // Voting state
+  const [votedBookSlug, setVotedBookSlug] = useState<string | null>(null);
+  const [votingFor, setVotingFor] = useState<string | null>(null);
 
   /* ─────────────── Fetch Books ─────────────── */
   useEffect(() => {
@@ -71,6 +71,31 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
     };
     fetchBooks();
   }, [clubSlug]);
+
+  /* ─────────────── Fetch User's Vote ─────────────── */
+  useEffect(() => {
+    if (!clubSlug || !user) return;
+
+    const fetchUserVote = async () => {
+      try {
+        const idToken = await user.getIdToken();
+        const response = await fetch(`/api/clubs/${clubSlug}/votes/user`, {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setVotedBookSlug(data.bookSlug || null);
+        }
+      } catch (error) {
+        console.error('Error fetching user vote:', error);
+      }
+    };
+
+    fetchUserVote();
+  }, [clubSlug, user]);
 
   /* ─────────────── Real-time Votes ─────────────── */
   useEffect(() => {
@@ -114,22 +139,67 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
       alert('✅ Book nominated successfully!');
       setNomTitle('');
       setNomAuthor('');
+      // Refresh the list
+      const booksRes = await fetch(`/api/clubs/${clubSlug}/books`);
+      const booksData = await booksRes.json();
+      setNextCandidates(booksData.candidates || []);
     }
   };
 
-  /* ─────────────── Vote ─────────────── */
+  /* ─────────────── Vote (FIXED - Use API) ─────────────── */
   const handleVote = async (bookSlug: string) => {
     if (!user) return alert('Please sign in to vote.');
-    const ref = doc(db, 'clubs', clubSlug, 'votes', bookSlug);
-    await setDoc(
-      ref,
-      {
-        voters: arrayUnion(user.uid),
-        voteCount: increment(1),
-        lastUpdated: serverTimestamp(),
-      },
-      { merge: true }
-    );
+
+    setVotingFor(bookSlug);
+
+    try {
+      // Get the ID token - THIS IS CRITICAL
+      const idToken = await user.getIdToken();
+
+      const response = await fetch(`/api/clubs/${clubSlug}/votes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`, // ← This ensures one vote per user
+        },
+        body: JSON.stringify({ bookSlug }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const oldVote = votedBookSlug;
+        
+        // Update local state
+        setVotedBookSlug(bookSlug);
+        
+        // Update vote counts optimistically
+        setVoteCounts((prev) => {
+          const updated = { ...prev };
+          
+          // Decrement old vote if exists and different
+          if (oldVote && oldVote !== bookSlug) {
+            updated[oldVote] = Math.max(0, (updated[oldVote] || 0) - 1);
+          }
+          
+          // Increment new vote (only if not already voted for this book)
+          if (oldVote !== bookSlug) {
+            updated[bookSlug] = (updated[bookSlug] || 0) + 1;
+          }
+          
+          return updated;
+        });
+
+        alert(data.message || 'Vote recorded!');
+      } else {
+        alert(data.error || 'Failed to vote');
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      alert('Failed to vote');
+    } finally {
+      setVotingFor(null);
+    }
   };
 
   /* ─────────────── Declare Winner ─────────────── */
@@ -163,6 +233,9 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
     });
 
     alert('🔄 Voting round reset.');
+    
+    // Clear local vote state
+    setVotedBookSlug(null);
   };
 
   /* ─────────────── UI ─────────────── */
@@ -247,30 +320,48 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
           <p className={styles.emptyVoteNote}>No books nominated yet.</p>
         ) : (
           <div className={styles.booksList}>
-            {nextCandidates.map((book) => (
-              <div key={book.id} className={styles.bookCard}>
-                <Link
-                  href={`/books/${book.slug}?club=${clubSlug}`}
-                  className={styles.bookLink}
-                >
-                  <img
-                    src={book.coverUrl || '/placeholder.jpg'}
-                    alt={book.title}
-                    className={styles.bookCover}
-                  />
-                  <div className={styles.bookInfo}>
-                    <h3>{book.title}</h3>
-                    <p>by {book.authorName}</p>
-                  </div>
-                </Link>
-                <div className={styles.voteControls}>
+            {nextCandidates.map((book) => {
+              const isVoted = votedBookSlug === book.slug;
+              const voteCount = voteCounts[book.slug] || 0;
+              const isVoting = votingFor === book.slug;
+
+              return (
+                <div key={book.id} className={styles.bookCard}>
+                  {book.coverUrl ? (
+                    <img
+                      src={book.coverUrl}
+                      alt={book.title}
+                      className={styles.bookCover}
+                    />
+                  ) : (
+                    <div className={styles.noCover}>
+                      <Heart size={32} />
+                    </div>
+                  )}
+
                   <button
-                    className={styles.voteButton}
+                    className={`${styles.voteButton} ${isVoted ? styles.voted : ''}`}
                     onClick={() => handleVote(book.slug)}
+                    disabled={isVoting}
                   >
-                    <ThumbsUp size={16} />
-                    Vote ({voteCounts[book.slug] || 0})
+                    {isVoting ? (
+                      <>
+                        <Loader2 size={16} className={styles.spinner} />
+                        Voting...
+                      </>
+                    ) : isVoted ? (
+                      <>
+                        <Heart size={16} fill="currentColor" />
+                        Voted ({voteCount})
+                      </>
+                    ) : (
+                      <>
+                        <Heart size={16} />
+                        Vote ({voteCount})
+                      </>
+                    )}
                   </button>
+
                   {isAdmin && (
                     <button
                       className={styles.declareButton}
@@ -280,8 +371,8 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
                     </button>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
