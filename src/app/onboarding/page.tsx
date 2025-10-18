@@ -1,121 +1,122 @@
-// src/app/onboarding/page.tsx
 'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
-import { getDbOrThrow } from "@/lib/firebase";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { formatError } from "@/lib/errors";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthProvider'; // ✅ uses your shared context
+import { getDbOrThrow } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { BookOpen, PenTool } from 'lucide-react';
+import styles from './onboarding.module.css';
 
 export default function OnboardingPage() {
-  const [error, setError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  const router = useRouter();
   const { user, loading } = useAuth();
+  const router = useRouter();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Redirect if not logged in
+  // Redirect if unauthenticated
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/signup");
-    }
-  }, [user, loading, router]);
+    if (!loading && !user) router.push('/signup');
+  }, [loading, user, router]);
 
-  async function handleRoleSelect(role: "reader" | "author") {
+  const handleSelect = async (role: 'reader' | 'author') => {
     if (!user) {
-      setError("Please sign in to continue");
-      router.push("/signup");
+      setError('Please sign in to continue');
+      router.push('/signup');
       return;
     }
 
-    setIsProcessing(true);
-    setError(null);
-
     try {
+      setIsProcessing(true);
+      setError(null);
+
       const db = getDbOrThrow();
-      const ref = doc(db, "users", user.uid);
+      const ref = doc(db, 'users', user.uid);
 
-      console.log(`💾 Updating user ${user.uid} with role: ${role}`);
+      await setDoc(
+        ref,
+        {
+          role,
+          isAuthor: role === 'author',
+          profileComplete: role === 'reader', // readers skip setup
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
-      await updateDoc(ref, {
-        role,
-        isAuthor: role === "author",
-        profileComplete: true,
-        updatedAt: serverTimestamp(),
-      });
+      console.log(`✅ Role saved as ${role} for user ${user.uid}`);
 
-      console.log(`✅ Profile completed successfully!`);
-
-      router.push("/account");
-    } catch (err) {
-      console.error("❌ Failed to save role:", err);
-      setError(formatError(err));
+      if (role === 'author') router.push('/authors/submit');
+      else router.push('/discover');
+    } catch (err: any) {
+      console.error('❌ Failed to save role:', err);
+      setError('Something went wrong while saving your choice.');
+    } finally {
       setIsProcessing(false);
     }
-  }
+  };
 
   if (loading) {
     return (
-      <main className="login-container">
-        <div className="login-card">
-          <p className="muted">Loading...</p>
+      <main className={styles.container}>
+        <div className={styles.card}>
+          <p className={styles.loadingText}>Loading...</p>
         </div>
       </main>
     );
   }
 
-  if (!user) {
-    return null; // Will redirect via useEffect
-  }
+  if (!user) return null;
 
   return (
-    <main className="login-container">
-      <div className="book-glow"></div>
-      <div className="login-card">
-        <h1 className="login-title">Welcome to Booklyverse! 🎉</h1>
-        <p className="login-subtitle">Choose how you'll use the platform:</p>
+    <main className={styles.container}>
+      <motion.div
+        className={styles.card}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <h1 className={styles.title}>Welcome to Booklyverse ✨</h1>
+        <p className={styles.subtitle}>Choose how you’ll experience the story.</p>
 
-        <p className="muted" style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
-          Signed in as: <strong>{user.email}</strong>
-        </p>
-
-        <div style={{ display: "flex", gap: "1rem", marginTop: "2rem", flexDirection: "column" }}>
-          <button
-            className="btn-primary btn"
-            style={{ padding: "1.5rem", textAlign: "left" }}
-            onClick={() => handleRoleSelect("reader")}
-            disabled={isProcessing}
-          >
-            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📚</div>
-            <div style={{ fontWeight: "bold", fontSize: "1.125rem" }}>I'm a Reader</div>
-            <div style={{ fontSize: "0.875rem", opacity: 0.8, marginTop: "0.25rem" }}>
-              Discover and read amazing books
-            </div>
-          </button>
-          
-          <button
-            className="btn-secondary btn"
-            style={{ padding: "1.5rem", textAlign: "left" }}
-            onClick={() => handleRoleSelect("author")}
-            disabled={isProcessing}
-          >
-            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>✍️</div>
-            <div style={{ fontWeight: "bold", fontSize: "1.125rem" }}>I'm an Author</div>
-            <div style={{ fontSize: "0.875rem", opacity: 0.8, marginTop: "0.25rem" }}>
-              Write and publish your stories
-            </div>
-          </button>
+        <div className={styles.userHint}>
+          Signed in as <strong>{user.email}</strong>
         </div>
 
-        {isProcessing && (
-          <p className="muted" style={{ marginTop: "1.5rem", textAlign: "center" }}>
-            Saving your preference...
-          </p>
-        )}
+        <div className={styles.buttonGrid}>
+          <motion.button
+            className={`${styles.roleButton} ${styles.reader}`}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => handleSelect('reader')}
+            disabled={isProcessing}
+          >
+            <BookOpen size={40} />
+            <div>
+              <h3>I’m a Reader</h3>
+              <p>Discover and enjoy amazing books.</p>
+            </div>
+          </motion.button>
 
-        {error && <p className="error-text" style={{ marginTop: "1rem" }}>{error}</p>}
-      </div>
+          <motion.button
+            className={`${styles.roleButton} ${styles.author}`}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => handleSelect('author')}
+            disabled={isProcessing}
+          >
+            <PenTool size={40} />
+            <div>
+              <h3>I’m an Author</h3>
+              <p>Write and publish your stories.</p>
+            </div>
+          </motion.button>
+        </div>
+
+        {isProcessing && <p className={styles.loadingText}>Saving your preference...</p>}
+        {error && <p className={styles.errorText}>{error}</p>}
+      </motion.div>
     </main>
   );
 }

@@ -40,6 +40,7 @@ export default function Header() {
       {/* ───── Desktop Links ───── */}
       <nav className={styles.linksDesktop}>
         <Link href="/discover">Discover</Link>
+        <Link href="/books">Books</Link>
         <Link href="/clubs">Clubs</Link>
         <Link href="/authors">Authors</Link>
         <Link href="/deals">Deals</Link>
@@ -65,6 +66,7 @@ export default function Header() {
       {/* ───── Mobile Menu ───── */}
       <div className={`${styles.mobileMenu} ${open ? styles.mobileMenuOpen : ''}`}>
         <Link href="/discover" onClick={() => setOpen(false)}>Discover</Link>
+        <Link href="/books" onClick={() => setOpen(false)}>Books</Link>
         <Link href="/clubs" onClick={() => setOpen(false)}>Clubs</Link>
         <Link href="/authors" onClick={() => setOpen(false)}>Authors</Link>
         <Link href="/deals" onClick={() => setOpen(false)}>Deals</Link>

@@ -1,0 +1,382 @@
+.authorPage {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  color: #fff;
+}
+
+/* Frosted Header */
+.frostedHeader {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 2rem;
+}
+
+.ambientBackground {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.blurOrb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.5;
+}
+.orb1 {
+  top: -30%;
+  left: -20%;
+  width: 300px;
+  height: 300px;
+  background: #4f46e5;
+}
+.orb2 {
+  bottom: -40%;
+  right: -20%;
+  width: 280px;
+  height: 280px;
+  background: #9333ea;
+}
+
+/* Header Content */
+.headerContent {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  z-index: 1;
+}
+
+.avatarWrapper {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 2rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+/* Info Section */
+.authorInfo {
+  flex: 1;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.authorName {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.followButton {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.followButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.following {
+  background: rgba(52, 211, 153, 0.2);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #a7f3d0;
+}
+
+.bio {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #94a3b8;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Books Section */
+.booksSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.booksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.5rem;
+}
+
+.bookCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+}
+
+.bookCard:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bookCover {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.bookInfo {
+  padding: 0.75rem;
+}
+
+.bookTitle {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.bookDesc {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.emptyMessage {
+  text-align: center;
+  color: #94a3b8;
+}
+
+.page {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 1rem;
+  color: white;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(16px) saturate(180%);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.authorProfile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatarFallback {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 1.5rem;
+}
+
+.about {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.booksSection {
+  margin-top: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: background 0.2s;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cover {
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  object-fit: cover;
+}
+
+.info h3 {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.info p {
+  font-size: 0.8rem;
+  color: #ccc;
+}
+
+.stateContainer {
+  text-align: center;
+  margin-top: 6rem;
+  color: #ccc;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #bbb;
+  margin-top: 1rem;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: white;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty {
+  color: #aaa;
+  text-align: center;
+  padding: 2rem;
+}
+.actions {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.readBtn,
+.libraryBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.readBtn {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.readBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.libraryBtn {
+  background: #0070f3;
+  color: white;
+}
+
+.libraryBtn:hover {
+  background: #0a84ff;
+}
+
+.inLibrary {
+  background: rgba(0, 255, 128, 0.3);
+  color: #00ff80;
+  cursor: default;
+}
+
+.libraryBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

@@ -1,0 +1,7 @@
+{
+  "type": "html",
+  "chapters": [
+    { "href": "0001.html", "title": "Chapter 1" },
+    { "href": "0002.html", "title": "Chapter 2" }
+  ]
+}

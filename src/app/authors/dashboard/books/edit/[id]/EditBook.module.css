@@ -1,0 +1,90 @@
+.editPage {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem;
+  backdrop-filter: blur(12px) saturate(160%);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.actions button,
+.previewBtn {
+  margin-left: 0.75rem;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+}
+
+.actions button:hover,
+.previewBtn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 250px;
+  gap: 2rem;
+}
+
+.formSection label {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.formSection input,
+.formSection textarea {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: rgba(255,255,255,0.08);
+  color: white;
+}
+
+.coverPreview {
+  width: 150px;
+  height: auto;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.metaCard {
+  padding: 1rem;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  color: #ddd;
+}
+
+.loadingContainer,
+.errorContainer {
+  text-align: center;
+  padding: 4rem;
+  color: #ccc;
+}

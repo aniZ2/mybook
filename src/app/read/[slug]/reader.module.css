@@ -1,0 +1,79 @@
+/* Reader base container */
+.reader {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0b1020;
+  color: #e6e6ea;
+}
+
+/* Centered fallback */
+.center {
+  display: grid;
+  place-items: center;
+  height: 100vh;
+  color: #9aa;
+}
+
+/* Frosted HUD toolbar */
+.hud {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 12px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px) saturate(160%);
+}
+
+.btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Bottom progress bar */
+.progress {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #60a5fa, #a78bfa);
+}
+
+/* Chapter layout */
+.page {
+  flex: 1;
+  overflow: auto;
+  padding: 24px 12px 32px;
+}
+
+.content {
+  max-width: 720px;
+  margin: 0 auto;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.content img {
+  max-width: 100%;
+  height: auto;
+}
