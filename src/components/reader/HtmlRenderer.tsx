@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import styles from '@/app/read/[slug]/Reader.module.css';
+import styles from './reader.module.css';
 
 export default function HtmlRenderer({
   slug,

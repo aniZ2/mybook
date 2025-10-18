@@ -3,7 +3,7 @@ import useReaderState from './useReaderState';
 import HtmlRenderer from './HtmlRenderer';
 import Controls from './Controls';
 import ProgressBar from './ProgressBar';
-import styles from '@/app/read/[slug]/Reader.module.css';
+import styles from './reader.module.css';
 
 export default function ReaderShell({ slug }: { slug: string }) {
   const rs = useReaderState(slug);

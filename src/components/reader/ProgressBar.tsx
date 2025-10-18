@@ -1,5 +1,5 @@
 'use client';
-import styles from '@/app/read/[slug]/Reader.module.css';
+import styles from './reader.module.css';
 
 export default function ProgressBar({ value }: { value: number }) {
   return (
