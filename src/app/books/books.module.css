@@ -63,3 +63,48 @@
   color: #aaa;
   margin-top: 0.5rem;
 }
+
+/* ──────────────────────────────── */
+/* 📘 Nominate Button Styles        */
+/* ──────────────────────────────── */
+.nominateBtn {
+  margin-top: 0.35rem;
+  background: #2a6ca5; /* rich blue base */
+  color: #b4e2e8; /* soft cyan text */
+  border: none;
+  border-radius: 9999px; /* full pill */
+  padding: 0.2rem 0.6rem; /* smaller pill shape */
+  font-size: 0.75rem; /* slightly smaller text */
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  line-height: 1; /* keeps button tight */
+}
+
+.nominateBtn:hover {
+  background: #560f90; /* purple accent hover */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(86, 15, 144, 0.3);
+}
+/* ─────────────── Toast Notification ─────────────── */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.8rem 1.2rem;
+  border-radius: 9999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  z-index: 9999;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.toastSuccess {
+  background: linear-gradient(90deg, #059669, #10b981);
+}
+
+.toastError {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+}

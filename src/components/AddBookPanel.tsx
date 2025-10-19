@@ -20,6 +20,7 @@ interface Book {
   author: string;
   coverUrl?: string;
   isbn?: string;
+  status?: string;
 }
 
 interface AddBookPanelProps {
@@ -27,7 +28,7 @@ interface AddBookPanelProps {
   currentUserId?: string;
   onBookAdded?: () => void;
   isAdmin?: boolean;
-  onClose?: () => void; // for close button
+  onClose?: () => void;
 }
 
 export default function AddBookPanel({
@@ -45,60 +46,50 @@ export default function AddBookPanel({
     null
   );
 
-  // ─────────────── Helpers ───────────────
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // ─────────────── Search Books ───────────────
+  /* ─────────────── Firestore Library Search ─────────────── */
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
-      const res = await fetch(`/api/books/search?q=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(
+        `/api/clubs/${clubSlug}/books/search?q=${encodeURIComponent(searchQuery)}`
+      );
       const data = await res.json();
+
+      // Results come directly from Firestore now
       const books = (data.results || []).map((b: any) => ({
-        id: b.id || b.isbn13 || b.isbn10 || b.title,
-        slug: b.slug || b.id,
+        id: b.id,
+        slug: b.slug,
         title: b.title,
-        author: Array.isArray(b.authors) ? b.authors.join(', ') : b.authors || 'Unknown Author',
-        coverUrl: b.cover,
-        isbn: b.isbn13 || b.isbn10,
+        author: b.authorName,
+        coverUrl: b.coverUrl,
+        status: b.status,
       }));
       setSearchResults(books);
     } catch (err) {
       console.error('Search failed', err);
-      showToast('error', 'Failed to search books');
+      showToast('error', 'Failed to search your library');
     } finally {
       setSearching(false);
     }
   };
 
-  // ─────────────── Add Book ───────────────
-  const handleAddBook = async (book: Book, setAsCurrent: boolean = false) => {
-    if (!isAdmin) {
-      showToast('error', 'Only admins can add books');
-      return;
-    }
-    if (!currentUserId) {
-      showToast('error', 'Please sign in to add a book');
-      return;
-    }
+  /* ─────────────── Add Book with status ─────────────── */
+  const handleAddBook = async (book: Book, status: 'current' | 'nominated' = 'nominated') => {
+    if (!isAdmin) return showToast('error', 'Only admins can add books');
+    if (!currentUserId) return showToast('error', 'Please sign in to add a book');
 
     setAdding(true);
     try {
-      // ✅ Always generate consistent global slug
-      const bookSlug = book.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-
       const { auth } = await import('@/lib/firebase');
       if (!auth) throw new Error('Firebase not initialized');
-
       const user = auth.currentUser;
-      if (!user) throw new Error('You must be signed in to perform this action.');
+      if (!user) throw new Error('You must be signed in.');
 
       const token = await user.getIdToken();
 
@@ -109,25 +100,23 @@ export default function AddBookPanel({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          bookSlug,
+          bookSlug: book.slug,
           title: book.title,
           author: book.author,
           coverUrl: book.coverUrl,
           isbn: book.isbn,
-          setAsCurrentlyReading: setAsCurrent,
+          status, // ✅ Controlled explicitly
         }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to add book');
-      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to add book');
 
       showToast(
         'success',
-        setAsCurrent
+        status === 'current'
           ? `✨ "${book.title}" set as currently reading`
-          : `📚 "${book.title}" added to the club library`
+          : `📚 "${book.title}" added to nominations`
       );
 
       setSearchQuery('');
@@ -141,7 +130,6 @@ export default function AddBookPanel({
     }
   };
 
-  // ─────────────── Restricted View ───────────────
   if (!isAdmin) {
     return (
       <div className={styles.panel}>
@@ -153,38 +141,36 @@ export default function AddBookPanel({
     );
   }
 
-  // ─────────────── Render ───────────────
   return (
     <div className={styles.panel}>
-      {/* Header with Close Button */}
       <div className={styles.panelHeader}>
-        <h3 className={styles.title}>Add a Book to Your Club</h3>
+        <h3 className={styles.title}>Add a Book from Your Library</h3>
         <button className={styles.closeButton} onClick={() => onClose?.()}>
           <X size={20} />
         </button>
       </div>
 
-      {/* Search Bar */}
+      {/* Search */}
       <div className={styles.searchBar}>
         <Search size={20} />
         <input
           type="text"
-          placeholder="Search by title, author, or ISBN..."
+          placeholder="Search existing club library..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
         />
         <button onClick={handleSearch} disabled={searching}>
           {searching ? 'Searching...' : 'Search'}
         </button>
       </div>
 
-      {/* Search Results */}
+      {/* Results */}
       <div className={styles.resultsSection}>
         {searchResults.length === 0 && !searching && (
           <div className={styles.emptyState}>
             <Book size={40} />
-            <p>Search for books to add to your club</p>
+            <p>Search for books already in your library</p>
           </div>
         )}
 
@@ -203,25 +189,27 @@ export default function AddBookPanel({
                   <div className={styles.bookDetails}>
                     <h4>{book.title}</h4>
                     <p>{book.author}</p>
+                    <small>Status: {book.status}</small>
                   </div>
                 </div>
+
                 <div className={styles.bookActions}>
                   <button
-                    onClick={() => handleAddBook(book, true)}
+                    onClick={() => handleAddBook(book, 'current')}
                     disabled={adding}
                     className={styles.setCurrentButton}
-                    title="Set as currently reading"
                   >
                     <Sparkles size={16} />
                     {adding ? 'Setting...' : 'Set as Current'}
                   </button>
+
                   <button
-                    onClick={() => handleAddBook(book, false)}
+                    onClick={() => handleAddBook(book, 'nominated')}
                     disabled={adding}
                     className={styles.addButton}
                   >
                     <Plus size={16} />
-                    {adding ? 'Adding...' : 'Add to Library'}
+                    {adding ? 'Adding...' : 'Nominate'}
                   </button>
                 </div>
               </div>
@@ -230,7 +218,6 @@ export default function AddBookPanel({
         )}
       </div>
 
-      {/* Toast */}
       {toast && (
         <div
           className={`${styles.toast} ${

@@ -3,77 +3,56 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import algoliasearch from 'algoliasearch';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const {
-  NEXT_PUBLIC_FIREBASE_API_KEY,
-  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  NEXT_PUBLIC_FIREBASE_APP_ID,
-  NEXT_PUBLIC_ALGOLIA_APP_ID,
+  ALGOLIA_APP_ID,
   ALGOLIA_ADMIN_KEY,
-  ALGOLIA_INDEX_NAME,
+  ALGOLIA_INDEX_NAME = 'books',
 } = process.env;
 
-// Validate Firebase credentials
-if (!NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-  throw new Error('❌ Missing NEXT_PUBLIC_FIREBASE_PROJECT_ID in .env.local file');
+// ───────────── Firebase Admin Setup ─────────────
+if (!admin.apps.length) admin.initializeApp();
+const db = getFirestore();
+
+// ───────────── Algolia Client ─────────────
+if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
+  throw new Error('❌ Missing Algolia credentials');
 }
-
-if (!NEXT_PUBLIC_FIREBASE_API_KEY) {
-  throw new Error('❌ Missing NEXT_PUBLIC_FIREBASE_API_KEY in .env.local file');
-}
-
-// Validate Algolia credentials
-if (!NEXT_PUBLIC_ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
-  throw new Error('❌ Missing Algolia credentials in .env.local file');
-}
-
-const firebaseConfig = {
-  apiKey: NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-console.log('🔧 Firebase Project ID:', NEXT_PUBLIC_FIREBASE_PROJECT_ID);
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const client = algoliasearch(
-  NEXT_PUBLIC_ALGOLIA_APP_ID,
-  ALGOLIA_ADMIN_KEY
-);
-const index = client.initIndex(ALGOLIA_INDEX_NAME || 'books');
+const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY);
+const index = client.initIndex(ALGOLIA_INDEX_NAME);
 
 (async () => {
   try {
     console.log('📚 Fetching books from Firestore...');
-    const snap = await getDocs(collection(db, 'books'));
-    const books = snap.docs.map((doc) => ({
-      objectID: doc.id,
-      ...doc.data(),
-    }));
+    const snap = await db.collection('books').get();
+
+    const books = snap.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        objectID: doc.id,
+        title: d.title,
+        authors: [d.authorName].filter(Boolean),
+        cover: d.coverUrl || null,
+        slug: d.slug || doc.id,
+        description: d.description || '',
+        genres: d.genres || [],
+        source: 'firestore',
+      };
+    });
 
     if (books.length === 0) {
       console.log('⚠️ No books found in Firestore.');
       process.exit(0);
     }
 
-    console.log(`📤 Uploading ${books.length} books to Algolia...`);
-    
+    console.log(`📤 Uploading ${books.length} books to Algolia index "${ALGOLIA_INDEX_NAME}"...`);
     await index.saveObjects(books);
-    
     console.log('✅ Upload complete!');
     process.exit(0);
-  } catch (error) {
-    console.error('❌ Error:', error);
+  } catch (err) {
+    console.error('❌ Upload error:', err);
     process.exit(1);
   }
 })();

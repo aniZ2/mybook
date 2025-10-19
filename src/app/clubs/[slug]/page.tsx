@@ -6,9 +6,9 @@ import ClubHeader from '@/components/ClubHeader';
 import ClubFeed from '@/components/ClubFeed';
 import ClubSpotlight from '@/components/ClubSpotlight';
 import ClubBooks from '@/components/ClubBooks';
-import VoteForNextRead from '@/components/VoteForNextRead';
 import { useAuth } from '@/context/AuthProvider';
 import { Send, X } from 'lucide-react';
+import toast from 'react-hot-toast'; // ✅ toast system
 import styles from '../ClubsPage.module.css';
 
 interface Club {
@@ -49,15 +49,14 @@ interface ClubData {
   announcements?: Announcement[];
 }
 
-// ✅ Updated params type to Promise
 export default function ClubDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = use(params); // ✅ unwrap new Promise-style params
-
+  const { slug } = use(params);
   const { user } = useAuth();
+
   const [clubData, setClubData] = useState<ClubData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -65,6 +64,7 @@ export default function ClubDetailPage({
   const [submitting, setSubmitting] = useState(false);
   const [refreshBooks, setRefreshBooks] = useState(0);
 
+  /* ─────────────── Fetch Club Data ─────────────── */
   const fetchClubData = useCallback(async () => {
     try {
       const headers: HeadersInit = {};
@@ -96,8 +96,10 @@ export default function ClubDetailPage({
     fetchClubData();
   }, [fetchClubData]);
 
+  /* ─────────────── Callbacks ─────────────── */
   const handleJoinSuccess = (newMemberCount: number) => {
     if (clubData?.club && user?.uid) {
+      toast.success('✨ Joined club successfully!');
       setClubData({
         ...clubData,
         club: {
@@ -109,17 +111,11 @@ export default function ClubDetailPage({
     }
   };
 
-  const handleBookAdded = async () => {
-    console.log('📚 Book added, refreshing data...');
-    await fetchClubData();
-    setRefreshBooks((prev) => prev + 1);
-  };
-
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user) {
-      alert('Please sign in to create a post');
+      toast.error('Please sign in to create a post');
       return;
     }
 
@@ -146,15 +142,19 @@ export default function ClubDetailPage({
 
       setPostContent('');
       setShowCreatePost(false);
+      toast.success('📚 Post shared with your club!');
       await fetchClubData();
     } catch (error) {
       console.error('Error creating post:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create post');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create post'
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
+  /* ─────────────── Loading / Error States ─────────────── */
   if (loading) {
     return (
       <main className={styles.stateContainer}>
@@ -172,10 +172,12 @@ export default function ClubDetailPage({
     );
   }
 
+  /* ─────────────── Render ─────────────── */
   const { club, posts = [], events, announcements } = clubData;
 
   return (
     <main className={styles.redditLayout}>
+      {/* HEADER */}
       <motion.div
         className={styles.headerContainer}
         initial={{ opacity: 0, y: -10 }}
@@ -186,24 +188,26 @@ export default function ClubDetailPage({
           club={club}
           currentUserId={user?.uid}
           onJoinSuccess={handleJoinSuccess}
-          onBookAdded={handleBookAdded}
         />
       </motion.div>
 
+      {/* MAIN CONTENT */}
       <div className={styles.contentWrapper}>
         <section className={styles.feedArea}>
-          <ClubBooks clubSlug={slug} key={refreshBooks} />
-
-          <VoteForNextRead
+          {/* ✅ Unified books section (includes nomination & voting) */}
+          <ClubBooks
             clubSlug={slug}
             isAdmin={user?.uid === club.ownerUid}
+            key={refreshBooks}
           />
 
+          {/* Spotlight section (events + announcements) */}
           {((events && events.length > 0) ||
             (announcements && announcements.length > 0)) && (
             <ClubSpotlight events={events} announcements={announcements} />
           )}
 
+          {/* CREATE POST */}
           {user && (
             <motion.div
               className={styles.createPostCard}
@@ -275,6 +279,7 @@ export default function ClubDetailPage({
             </motion.div>
           )}
 
+          {/* POSTS FEED */}
           {posts.length > 0 ? (
             <ClubFeed posts={posts} />
           ) : (

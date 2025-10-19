@@ -1,0 +1,38 @@
+/* ─────────────── Toast Animations ─────────────── */
+
+@keyframes toast-fade-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float-icon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.toast-join {
+  box-shadow: 0 0 18px rgba(147,197,253,0.4);
+  animation: toast-glow-blue 3s ease-in-out infinite;
+}
+@keyframes toast-glow-blue {
+  0%,100% { box-shadow: 0 0 0 rgba(147,197,253,0.2); }
+  50% { box-shadow: 0 0 15px rgba(147,197,253,0.6); }
+}
+
+.toast-leave {
+  box-shadow: 0 0 18px rgba(248,113,113,0.4);
+  animation: toast-glow-red 3s ease-in-out infinite;
+}
+@keyframes toast-glow-red {
+  0%,100% { box-shadow: 0 0 0 rgba(248,113,113,0.2); }
+  50% { box-shadow: 0 0 15px rgba(248,113,113,0.6); }
+}
+
+.toast-vote {
+  box-shadow: 0 0 18px rgba(251,191,36,0.4);
+  animation: toast-glow-gold 3s ease-in-out infinite;
+}
+@keyframes toast-glow-gold {
+  0%,100% { box-shadow: 0 0 0 rgba(251,191,36,0.2); }
+  50% { box-shadow: 0 0 15px rgba(251,191,36,0.6); }
+}

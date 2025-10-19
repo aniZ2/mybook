@@ -3,21 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthProvider';
-import {
-  collection,
-  onSnapshot,
-} from 'firebase/firestore';
+import { collection, onSnapshot, getDocs } from 'firebase/firestore';
 import { getDbOrThrow } from '@/lib/firebase';
 import {
   BookOpen,
   Loader2,
   Library,
   Sparkles,
-  ThumbsUp,
-  Crown,
-  RefreshCcw,
-  Plus,
   Heart,
+  Crown,
+  X,
 } from 'lucide-react';
 import styles from './Club.module.css';
 
@@ -28,7 +23,9 @@ interface Book {
   authorName: string;
   coverUrl?: string | null;
   description?: string | null;
+  status?: 'nominated' | 'current' | 'past' | 'removed';
   isCurrentlyReading?: boolean;
+  isCandidate?: boolean;
 }
 
 interface ClubBooksProps {
@@ -42,15 +39,10 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
 
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
-  const [nextCandidates, setNextCandidates] = useState<Book[]>([]);
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
-  const [roundActive, setRoundActive] = useState<boolean>(false);
-  const [nomTitle, setNomTitle] = useState('');
-  const [nomAuthor, setNomAuthor] = useState('');
-  
-  // Voting state
   const [votedBookSlug, setVotedBookSlug] = useState<string | null>(null);
   const [votingFor, setVotingFor] = useState<string | null>(null);
+  const [removingBook, setRemovingBook] = useState<string | null>(null);
 
   /* ─────────────── Fetch Books ─────────────── */
   useEffect(() => {
@@ -60,9 +52,27 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
       try {
         const res = await fetch(`/api/clubs/${clubSlug}/books`);
         const data = await res.json();
-        setBooks(data.books || []);
-        setNextCandidates(data.candidates || []);
-        setRoundActive(data.roundActive || false);
+
+        console.log('📚 Fetched books data:', data);
+
+        // ✅ Merge and normalize statuses
+        const merged: Book[] = [
+          ...(data.books || []),
+          ...(data.candidates || []).map((b: any) => ({
+            ...b,
+            status: b.status || 'nominated',
+          })),
+        ];
+
+        const unique = Object.values(
+          merged.reduce((acc, b) => {
+            acc[b.slug] = b; // dedupe by slug
+            return acc;
+          }, {} as Record<string, Book>)
+        );
+
+        console.log('📚 Processed books:', unique);
+        setBooks(unique);
       } catch (err) {
         console.error('❌ Error fetching books:', err);
       } finally {
@@ -72,170 +82,213 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
     fetchBooks();
   }, [clubSlug]);
 
-  /* ─────────────── Fetch User's Vote ─────────────── */
+  /* ─────────────── Check User's Vote ─────────────── */
   useEffect(() => {
     if (!clubSlug || !user) return;
 
-    const fetchUserVote = async () => {
+    const checkUserVote = async () => {
       try {
-        const idToken = await user.getIdToken();
-        const response = await fetch(`/api/clubs/${clubSlug}/votes/user`, {
-          headers: {
-            'Authorization': `Bearer ${idToken}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setVotedBookSlug(data.bookSlug || null);
+        const userVoteRef = collection(db, 'clubs', clubSlug, 'userVotes');
+        const snapshot = await getDocs(userVoteRef);
+        
+        const userVoteDoc = snapshot.docs.find(doc => doc.id === user.uid);
+        
+        if (userVoteDoc) {
+          const bookSlug = userVoteDoc.data().bookSlug;
+          setVotedBookSlug(bookSlug);
+          console.log('✅ User has voted for:', bookSlug);
+        } else {
+          console.log('ℹ️ User has not voted yet');
+          setVotedBookSlug(null);
         }
       } catch (error) {
-        console.error('Error fetching user vote:', error);
+        console.error('❌ Error checking user vote:', error);
       }
     };
 
-    fetchUserVote();
-  }, [clubSlug, user]);
+    checkUserVote();
+  }, [clubSlug, user, db]);
 
   /* ─────────────── Real-time Votes ─────────────── */
   useEffect(() => {
     if (!clubSlug) return;
+    
+    console.log('👂 Setting up vote listener for club:', clubSlug);
+    
     const votesRef = collection(db, 'clubs', clubSlug, 'votes');
-    const unsub = onSnapshot(votesRef, (snap) => {
-      const counts: Record<string, number> = {};
-      snap.docs.forEach((d) => {
-        counts[d.id] = d.data().voteCount || 0;
-      });
-      setVoteCounts(counts);
-    });
-    return () => unsub();
+    const unsub = onSnapshot(
+      votesRef,
+      (snap) => {
+        console.log('📊 Vote snapshot received. Docs:', snap.size);
+        const counts: Record<string, number> = {};
+        
+        snap.docs.forEach((doc) => {
+          const data = doc.data();
+          console.log('📄 Vote doc:', doc.id, data);
+          
+          // Use doc.id as bookSlug (the document ID IS the bookSlug)
+          counts[doc.id] = data.voteCount || 0;
+        });
+        
+        console.log('📊 Final vote counts:', counts);
+        setVoteCounts(counts);
+      },
+      (error) => {
+        console.error('❌ Error in vote listener:', error);
+      }
+    );
+    
+    return () => {
+      console.log('👋 Cleaning up vote listener');
+      unsub();
+    };
   }, [clubSlug, db]);
 
-  /* ─────────────── Handle Nominate ─────────────── */
-  const handleNominate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isAdmin || !user) return alert('Only admins can nominate.');
-    if (!nomTitle.trim()) return alert('Please enter a title.');
+  /* ─────────────── Categorize Books ─────────────── */
+  const currentBook = books.find((b) => b.status === 'current' || b.isCurrentlyReading);
+  const pastBooks = books.filter((b) => b.status === 'past');
+  const nominatedBooks = books.filter(
+    (b) => (b.status === 'nominated' || b.isCandidate) && b.status !== 'removed'
+  );
 
-    const token = await user.getIdToken();
+  /* ─────────────── Calculate Highest Vote Count ─────────────── */
+  const highestVoteCount = Math.max(
+    ...nominatedBooks.map(book => voteCounts[book.slug] || 0),
+    0
+  );
 
-    const res = await fetch(`/api/clubs/${clubSlug}/books`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        title: nomTitle.trim(),
-        author: nomAuthor.trim() || 'Unknown',
-        nominateForNext: true,
-      }),
-    });
+  console.log('📖 Current book:', currentBook);
+  console.log('🗳️ Nominated books:', nominatedBooks);
+  console.log('📚 Past books:', pastBooks);
+  console.log('🏆 Highest vote count:', highestVoteCount);
 
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || 'Nomination failed.');
-    } else {
-      alert('✅ Book nominated successfully!');
-      setNomTitle('');
-      setNomAuthor('');
-      // Refresh the list
-      const booksRes = await fetch(`/api/clubs/${clubSlug}/books`);
-      const booksData = await booksRes.json();
-      setNextCandidates(booksData.candidates || []);
-    }
-  };
-
-  /* ─────────────── Vote (FIXED - Use API) ─────────────── */
+  /* ─────────────── Handle Vote ─────────────── */
   const handleVote = async (bookSlug: string) => {
-    if (!user) return alert('Please sign in to vote.');
+    if (!user) {
+      alert('Please sign in to vote.');
+      return;
+    }
 
+    console.log('🗳️ Voting for:', bookSlug);
     setVotingFor(bookSlug);
-
+    
     try {
-      // Get the ID token - THIS IS CRITICAL
       const idToken = await user.getIdToken();
-
       const response = await fetch(`/api/clubs/${clubSlug}/votes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`, // ← This ensures one vote per user
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({ bookSlug }),
       });
 
       const data = await response.json();
+      console.log('🗳️ Vote response:', data);
 
       if (response.ok) {
-        const oldVote = votedBookSlug;
-        
-        // Update local state
         setVotedBookSlug(bookSlug);
         
-        // Update vote counts optimistically
-        setVoteCounts((prev) => {
-          const updated = { ...prev };
-          
-          // Decrement old vote if exists and different
-          if (oldVote && oldVote !== bookSlug) {
-            updated[oldVote] = Math.max(0, (updated[oldVote] || 0) - 1);
-          }
-          
-          // Increment new vote (only if not already voted for this book)
-          if (oldVote !== bookSlug) {
-            updated[bookSlug] = (updated[bookSlug] || 0) + 1;
-          }
-          
-          return updated;
+        // ✅ Force refresh vote counts immediately
+        const votesSnapshot = await getDocs(collection(db, 'clubs', clubSlug, 'votes'));
+        const counts: Record<string, number> = {};
+        votesSnapshot.docs.forEach((doc) => {
+          counts[doc.id] = doc.data().voteCount || 0;
         });
-
+        setVoteCounts(counts);
+        console.log('✅ Refreshed vote counts:', counts);
+        
         alert(data.message || 'Vote recorded!');
       } else {
         alert(data.error || 'Failed to vote');
       }
     } catch (error) {
-      console.error('Error voting:', error);
+      console.error('❌ Error voting:', error);
       alert('Failed to vote');
     } finally {
       setVotingFor(null);
     }
   };
 
-  /* ─────────────── Declare Winner ─────────────── */
-  const handleDeclareWinner = async (book: Book) => {
+  /* ─────────────── Remove Nomination (Admin) ─────────────── */
+  const handleRemoveNomination = async (book: Book) => {
     if (!isAdmin || !user) return;
-    const token = await user.getIdToken();
+    
+    if (!confirm(`Remove "${book.title}" from nominations?`)) return;
 
-    await fetch(`/api/clubs/${clubSlug}/books`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        bookSlugOverride: book.slug,
-        title: book.title,
-        author: book.authorName,
-        setAsCurrentlyReading: true,
-      }),
-    });
+    console.log('🗑️ Removing nomination:', book.slug);
 
-    alert(`📚 "${book.title}" is now the next read!`);
+    setRemovingBook(book.slug);
+    try {
+      const token = await user.getIdToken();
+
+      const res = await fetch(`/api/clubs/${clubSlug}/books?bookSlug=${book.slug}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      
+      console.log('🗑️ Remove nomination response:', data);
+
+      if (res.ok) {
+        alert(`Removed "${book.title}" from nominations`);
+        window.location.reload();
+      } else {
+        alert(data.error || 'Failed to remove nomination');
+      }
+    } catch (error) {
+      console.error('❌ Error removing nomination:', error);
+      alert('Failed to remove nomination');
+    } finally {
+      setRemovingBook(null);
+    }
   };
 
-  /* ─────────────── Reset Round ─────────────── */
-  const handleResetRound = async () => {
+  /* ─────────────── Declare Winner (Admin) ─────────────── */
+  const handleDeclareWinner = async (book: Book) => {
     if (!isAdmin || !user) return;
-    const token = await user.getIdToken();
-
-    await fetch(`/api/clubs/${clubSlug}/books`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ resetRound: true }),
-    });
-
-    alert('🔄 Voting round reset.');
     
-    // Clear local vote state
-    setVotedBookSlug(null);
+    if (!confirm(`Declare "${book.title}" as the next read?`)) return;
+
+    console.log('🏆 Declaring winner:', book);
+
+    try {
+      const token = await user.getIdToken();
+
+      const res = await fetch(`/api/clubs/${clubSlug}/books`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bookSlugOverride: book.slug,
+          title: book.title,
+          author: book.authorName,
+          coverUrl: book.coverUrl || null,
+          description: book.description || null,
+          setAsCurrentlyReading: true,
+        }),
+      });
+
+      const data = await res.json();
+      
+      console.log('🏆 Declare winner response:', data);
+
+      if (res.ok) {
+        alert(`📚 "${book.title}" is now the next read!`);
+        window.location.reload();
+      } else {
+        alert(data.error || 'Failed to declare winner');
+      }
+    } catch (error) {
+      console.error('❌ Error declaring winner:', error);
+      alert('Failed to declare winner');
+    }
   };
 
   /* ─────────────── UI ─────────────── */
@@ -246,9 +299,6 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
         <p>Loading books...</p>
       </div>
     );
-
-  const currentBook = books.find((b) => b.isCurrentlyReading);
-  const pastBooks = books.filter((b) => !b.isCurrentlyReading);
 
   return (
     <div className={styles.booksSection}>
@@ -275,58 +325,41 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
         </div>
       )}
 
-      {/* 🧾 NOMINATION FORM (Admins Only) */}
-      {isAdmin && (
-        <form onSubmit={handleNominate} className={styles.nominateForm}>
-          <h3>
-            <Plus size={16} /> Nominate a Book
-          </h3>
-          <div className={styles.nominateFields}>
-            <input
-              type="text"
-              placeholder="Book title..."
-              value={nomTitle}
-              onChange={(e) => setNomTitle(e.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Author (optional)"
-              value={nomAuthor}
-              onChange={(e) => setNomAuthor(e.target.value)}
-            />
-            <button type="submit">
-              <Plus size={14} /> Add
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* NEXT READ VOTING */}
+      {/* NOMINATED / NEXT READ VOTING */}
       <div className={styles.nextReadSection}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>
-            <Library size={20} /> Vote for the Next Read
-          </h2>
-          {isAdmin && roundActive && (
-            <div className={styles.roundControls}>
-              <button onClick={handleResetRound} className={styles.roundBtn}>
-                <RefreshCcw size={14} /> Reset
-              </button>
-            </div>
-          )}
-        </div>
+        <h2 className={styles.sectionTitle}>
+          <Library size={20} /> Vote for the Next Read
+        </h2>
 
-        {nextCandidates.length === 0 ? (
+        {nominatedBooks.length === 0 ? (
           <p className={styles.emptyVoteNote}>No books nominated yet.</p>
         ) : (
           <div className={styles.booksList}>
-            {nextCandidates.map((book) => {
+            {nominatedBooks.map((book) => {
               const isVoted = votedBookSlug === book.slug;
               const voteCount = voteCounts[book.slug] || 0;
               const isVoting = votingFor === book.slug;
+              const isRemoving = removingBook === book.slug;
+              const hasHighestVotes = voteCount === highestVoteCount && highestVoteCount > 0;
 
               return (
-                <div key={book.id} className={styles.bookCard}>
+                <div key={book.slug} className={styles.bookCard}>
+                  {/* ✅ Remove button for admins */}
+                  {isAdmin && (
+                    <button
+                      className={styles.removeNominationButton}
+                      onClick={() => handleRemoveNomination(book)}
+                      disabled={isRemoving}
+                      title="Remove from nominations"
+                    >
+                      {isRemoving ? (
+                        <Loader2 size={16} className={styles.spinner} />
+                      ) : (
+                        <X size={16} />
+                      )}
+                    </button>
+                  )}
+
                   {book.coverUrl ? (
                     <img
                       src={book.coverUrl}
@@ -338,6 +371,11 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
                       <Heart size={32} />
                     </div>
                   )}
+
+                  <div className={styles.bookInfo}>
+                    <h3>{book.title}</h3>
+                    <p>by {book.authorName}</p>
+                  </div>
 
                   <button
                     className={`${styles.voteButton} ${isVoted ? styles.voted : ''}`}
@@ -362,7 +400,8 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
                     )}
                   </button>
 
-                  {isAdmin && (
+                  {/* ✅ Only show Declare Winner button if book has highest votes */}
+                  {isAdmin && hasHighestVotes && (
                     <button
                       className={styles.declareButton}
                       onClick={() => handleDeclareWinner(book)}
@@ -383,24 +422,28 @@ export default function ClubBooks({ clubSlug, isAdmin }: ClubBooksProps) {
           <BookOpen size={20} /> Past Reads
         </h2>
         <div className={styles.booksList}>
-          {pastBooks.map((book) => (
-            <div key={book.id} className={styles.bookCard}>
-              <Link
-                href={`/books/${book.slug}?club=${clubSlug}`}
-                className={styles.bookLink}
-              >
-                <img
-                  src={book.coverUrl || '/placeholder.jpg'}
-                  alt={book.title}
-                  className={styles.bookCover}
-                />
-                <div className={styles.bookInfo}>
-                  <h3>{book.title}</h3>
-                  <p>by {book.authorName}</p>
-                </div>
-              </Link>
-            </div>
-          ))}
+          {pastBooks.length === 0 ? (
+            <p className={styles.emptyVoteNote}>No past reads yet.</p>
+          ) : (
+            pastBooks.map((book) => (
+              <div key={book.slug} className={styles.bookCard}>
+                <Link
+                  href={`/books/${book.slug}?club=${clubSlug}`}
+                  className={styles.bookLink}
+                >
+                  <img
+                    src={book.coverUrl || '/placeholder.jpg'}
+                    alt={book.title}
+                    className={styles.bookCover}
+                  />
+                  <div className={styles.bookInfo}>
+                    <h3>{book.title}</h3>
+                    <p>by {book.authorName}</p>
+                  </div>
+                </Link>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

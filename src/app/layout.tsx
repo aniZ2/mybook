@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/context/AuthProvider";
 import Header from "@/components/Header";
+import ToastProvider from "@/components/ToastProvider"; // ✅ import global toast
 
 // ─────────────── Next.js Static Config ───────────────
 export const dynamic = "force-dynamic";
@@ -20,13 +21,13 @@ export const metadata: Metadata = {
   },
 };
 
-// ─────────────── Viewport (NEW Next.js spec) ───────────────
+// ─────────────── Viewport ───────────────
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5, // allows zoom
-  userScalable: true, // accessibility
-  themeColor: "#0f172a", // ✅ moved here from metadata
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: "#0f172a",
 };
 
 // ─────────────── Root Layout ───────────────
@@ -38,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* ✅ Add modern and legacy PWA tags */}
+        {/* ✅ Modern and legacy PWA tags */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="Booklyverse" />
@@ -47,7 +48,13 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>
+          {/* ✅ Global Toasts */}
+          <ToastProvider />
+
+          {/* ✅ Header visible everywhere */}
           <Header />
+
+          {/* ✅ Main page content */}
           <main>{children}</main>
         </AuthProvider>
       </body>
