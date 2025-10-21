@@ -10,7 +10,7 @@ import {
   Sparkles,
   Calendar,
 } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { getDbOrThrow } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -48,10 +48,13 @@ export default function ClubHeader({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [memberCount, setMemberCount] = useState(club.membersCount || 0);
+  const [booksCount, setBooksCount] = useState(club.booksCount || 0);
   const [startingVote, setStartingVote] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const isAdmin = club.ownerUid === currentUserId;
 
+  /* ─────────────── Format Helpers ─────────────── */
   const formatCount = (count: number) =>
     count >= 1000 ? (count / 1000).toFixed(1) + 'K' : count.toString();
 
@@ -68,32 +71,37 @@ export default function ClubHeader({
     }
   };
 
-  const fetchBooks = useCallback(async () => {
+  /* ─────────────── Books Count = Current + Past ─────────────── */
+  const fetchBooksCount = useCallback(async () => {
     try {
       const db = getDbOrThrow();
       const booksRef = collection(db, 'clubs', club.slug, 'books');
-      await getDocs(booksRef);
+
+      const [currentSnap, pastSnap] = await Promise.all([
+        getDocs(query(booksRef, where('status', '==', 'currently_reading'))),
+        getDocs(query(booksRef, where('status', '==', 'past_read'))),
+      ]);
+
+      const total = currentSnap.size + pastSnap.size;
+      setBooksCount(total);
     } catch (err) {
       console.error('Error fetching club books:', err);
     }
   }, [club.slug]);
 
   useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
+    fetchBooksCount();
+  }, [fetchBooksCount]);
 
-  /* ─────────────── JOIN CLUB ─────────────── */
+  /* ─────────────── JOIN ─────────────── */
   const handleJoinClub = async () => {
     if (!currentUserId) {
-      toast.error('📚 Please log in to join this club.', { duration: 3000 });
+      toast.error('📚 Please log in to join this club.');
       return;
     }
 
     if (isMember) {
-      toast('💬 You’re already part of this club.', {
-        duration: 2500,
-        className: 'toast-join',
-      });
+      toast('💬 You’re already a member.', { duration: 2500 });
       return;
     }
 
@@ -113,8 +121,7 @@ export default function ClubHeader({
         onJoinSuccess?.(newCount);
         toast.success(`✨ Welcome to ${club.name}!`, {
           icon: '📖',
-          duration: 4000,
-          className: 'toast-join',
+          duration: 3500,
         });
       } else {
         toast.error(data.error || 'Could not join the club.');
@@ -127,12 +134,47 @@ export default function ClubHeader({
     }
   };
 
-  /* ─────────────── LEAVE CLUB ─────────────── */
-  const handleLeaveClub = async () => {
-    if (!currentUserId) return;
-    if (!confirm(`Leave ${club.name}?`)) return;
+  /* ─────────────── Custom Confirm Leave ─────────────── */
+  const confirmLeave = () => {
+    if (leaving) return;
 
+    toast.custom((t) => (
+      <div
+        className={`relative bg-[rgba(30,27,75,0.8)] backdrop-blur-xl border border-[rgba(255,255,255,0.15)] text-white px-5 py-4 rounded-2xl shadow-[0_0_30px_rgba(168,85,247,0.2)] w-[320px] transition-all duration-300 ${
+          t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+        }`}
+      >
+        <p className="font-medium mb-2 text-center text-[15px]">
+          Leave <span className="text-purple-300">{club.name}</span>?
+        </p>
+
+        <div className="flex justify-center gap-3 mt-3">
+          <button
+            className="px-4 py-1.5 rounded-md bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] text-sm text-gray-200 transition"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            Cancel
+          </button>
+          <button
+            className="px-4 py-1.5 rounded-md bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-sm font-semibold transition"
+            onClick={() => {
+              toast.dismiss(t.id);
+              handleLeaveConfirmed();
+            }}
+          >
+            Leave
+          </button>
+        </div>
+      </div>
+    ));
+  };
+
+  /* ─────────────── Leave Logic ─────────────── */
+  const handleLeaveConfirmed = async () => {
+    if (!currentUserId) return;
+    setLeaving(true);
     setIsLoading(true);
+
     try {
       const res = await fetch(`/api/clubs/${club.slug}/join`, {
         method: 'DELETE',
@@ -146,46 +188,39 @@ export default function ClubHeader({
         const newCount = Math.max(0, memberCount - 1);
         setMemberCount(newCount);
         onJoinSuccess?.(newCount);
-        toast('👋 You left the club.', {
-          icon: '💔',
-          className: 'toast-leave',
-          duration: 3000,
-        });
+        toast('👋 You left the club.', { icon: '💔', duration: 3000 });
       } else toast.error(data.error || 'Failed to leave club.');
     } catch (e) {
       console.error(e);
       toast.error('Something went wrong while leaving.');
     } finally {
+      setLeaving(false);
       setIsLoading(false);
     }
   };
 
-  /* ─────────────── START VOTING ─────────────── */
+  /* ─────────────── Start Voting ─────────────── */
   const handleStartVoting = async () => {
     if (!isAdmin) {
-      toast('🗳️ Only the club admin can start voting.', { duration: 3000 });
+      toast('🗳️ Only the admin can start voting.');
       return;
     }
 
     if (startingVote) {
-      toast('⏳ A voting session is already starting...', { duration: 2500 });
+      toast('⏳ A voting session is already starting...');
       return;
     }
 
-    if (!confirm('Start voting for the next read?')) return;
-
+    toast.loading('Starting voting round...');
     setStartingVote(true);
     try {
       const res = await fetch(`/api/clubs/${club.slug}/votes/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
+      toast.dismiss();
       if (res.ok)
-        toast.success('🗳️ Voting round started!', {
-          icon: '🌟',
-          className: 'toast-vote',
-          duration: 4000,
-        });
+        toast.success('🗳️ Voting round started!', { icon: '🌟' });
       else toast.error('Failed to start voting.');
     } catch (err) {
       console.error('Error starting voting:', err);
@@ -195,7 +230,7 @@ export default function ClubHeader({
     }
   };
 
-  /* ─────────────── RENDER ─────────────── */
+  /* ─────────────── UI ─────────────── */
   return (
     <div className={styles.literaryLoungeHeader}>
       <div className={styles.ambientBackground}>
@@ -244,7 +279,7 @@ export default function ClubHeader({
                   {isMember ? (
                     <div
                       className={styles.memberBadge}
-                      onClick={handleLeaveClub}
+                      onClick={confirmLeave}
                     >
                       <CheckCircle2 className={styles.memberIcon} />
                       {isLoading ? '...' : 'Member'}
@@ -290,7 +325,7 @@ export default function ClubHeader({
                 </span>
                 <span>•</span>
                 <span>
-                  <BookOpen size={14} /> {formatCount(club.booksCount || 0)} books
+                  <BookOpen size={14} /> {formatCount(booksCount)} books
                 </span>
                 <span>•</span>
                 <span>

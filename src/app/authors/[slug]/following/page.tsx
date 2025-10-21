@@ -1,23 +1,29 @@
 import { NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getDbOrThrow } from '@/lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+} from 'firebase/firestore';
 
-/* ════════════════════════════════════════════════
-   Helper: resolve author by slug or ID
-════════════════════════════════════════════════ */
-async function resolveAuthor(db: FirebaseFirestore.Firestore, slugOrId: string) {
-  // Try by slug first
-  const authorsRef = db.collection('authors');
-  const slugSnap = await authorsRef.where('slug', '==', slugOrId).limit(1).get();
-
+// Helper to resolve either slug or UID
+async function resolveAuthor(db: any, slugOrId: string) {
+  const slugSnap = await getDocs(
+    query(collection(db, 'authors'), where('slug', '==', slugOrId), limit(1))
+  );
   if (!slugSnap.empty) {
     const docRef = slugSnap.docs[0];
     return { id: docRef.id, data: docRef.data() };
   }
 
-  // Fallback: direct ID lookup
-  const directSnap = await db.collection('authors').doc(slugOrId).get();
-  if (directSnap.exists) {
+  const directSnap = await getDoc(doc(db, 'authors', slugOrId));
+  if (directSnap.exists()) {
     return { id: directSnap.id, data: directSnap.data() };
   }
 
@@ -32,7 +38,7 @@ export async function POST(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const db = getAdminDb();
+    const db = getDbOrThrow();
     const { userId } = await req.json();
     const slug = params.slug;
 
@@ -44,8 +50,6 @@ export async function POST(
     }
 
     const authorId = author.id;
-    const authorData = author.data;
-
     if (userId === authorId) {
       return NextResponse.json(
         { error: 'Cannot follow yourself' },
@@ -53,49 +57,39 @@ export async function POST(
       );
     }
 
-    // Fetch user (follower) data
-    const userSnap = await db.collection('authors').doc(userId).get();
-    if (!userSnap.exists) {
+    const followerRef = doc(db, `authors/${authorId}/followers/${userId}`);
+    const followingRef = doc(db, `authors/${userId}/following/${authorId}`);
+
+    const userSnap = await getDoc(doc(db, 'authors', userId));
+    if (!userSnap.exists()) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const userData = userSnap.data();
+    const authorData = author.data;
 
-    // ─────────── References ───────────
-    const followerRef = db.doc(`authors/${authorId}/followers/${userId}`);
-    const followingRef = db.doc(`authors/${userId}/following/${authorId}`);
-
-    // ─────────── Data payloads ───────────
     const followerData = {
       userName: userData?.name || 'Unknown',
       userPhoto: userData?.photoUrl || null,
-      slug: userData?.slug || null,
       followedAt: new Date(),
     };
 
     const followingData = {
       userName: authorData?.name || 'Unknown',
       userPhoto: authorData?.photoUrl || null,
-      slug: authorData?.slug || null,
       followedAt: new Date(),
     };
 
-    // ─────────── Transaction ───────────
-    const batch = db.batch();
-    batch.set(followerRef, followerData);
-    batch.set(followingRef, followingData);
-    batch.update(db.collection('authors').doc(authorId), {
-      followersCount: FieldValue.increment(1),
-    });
-    batch.update(db.collection('authors').doc(userId), {
-      followingCount: FieldValue.increment(1),
-    });
-    await batch.commit();
+    // Writes trigger Cloud Function counters automatically
+    await Promise.all([
+      setDoc(followerRef, followerData),
+      setDoc(followingRef, followingData),
+    ]);
 
     console.log(`✅ ${userId} followed ${authorId}`);
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('🔥 Follow error:', err?.message || err);
+    console.error('🔥 Follow error:', err);
     return NextResponse.json(
       { error: err?.message || 'Server error' },
       { status: 500 }
@@ -111,7 +105,7 @@ export async function DELETE(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const db = getAdminDb();
+    const db = getDbOrThrow();
     const { userId } = await req.json();
     const slug = params.slug;
 
@@ -130,25 +124,16 @@ export async function DELETE(
       );
     }
 
-    const followerRef = db.doc(`authors/${authorId}/followers/${userId}`);
-    const followingRef = db.doc(`authors/${userId}/following/${authorId}`);
+    const followerRef = doc(db, `authors/${authorId}/followers/${userId}`);
+    const followingRef = doc(db, `authors/${userId}/following/${authorId}`);
 
-    // ─────────── Transaction ───────────
-    const batch = db.batch();
-    batch.delete(followerRef);
-    batch.delete(followingRef);
-    batch.update(db.collection('authors').doc(authorId), {
-      followersCount: FieldValue.increment(-1),
-    });
-    batch.update(db.collection('authors').doc(userId), {
-      followingCount: FieldValue.increment(-1),
-    });
-    await batch.commit();
+    // These deletions trigger the decrement Cloud Function
+    await Promise.all([deleteDoc(followerRef), deleteDoc(followingRef)]);
 
     console.log(`✅ ${userId} unfollowed ${authorId}`);
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('🔥 Unfollow error:', err?.message || err);
+    console.error('🔥 Unfollow error:', err);
     return NextResponse.json(
       { error: err?.message || 'Server error' },
       { status: 500 }

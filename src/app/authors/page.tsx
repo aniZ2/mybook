@@ -13,14 +13,16 @@ import {
   DocumentSnapshot,
 } from 'firebase/firestore';
 import { getDbOrThrow } from '@/lib/firebase';
-import { Users, BookOpen, Loader2 } from 'lucide-react';
+import { Users, BookOpen, Loader2, Crown } from 'lucide-react';
 import styles from './authorsList.module.css';
 
 interface Author {
-  slug: string;
+  id: string; // Changed from slug to id (UID)
+  slug?: string | null; // Optional slug for premium users
   name: string;
   bio?: string;
-  avatarUrl?: string;
+  photoUrl?: string;
+  isPremium?: boolean;
   followersCount?: number;
   booksCount?: number;
 }
@@ -31,7 +33,22 @@ export default function AuthorsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const PAGE_SIZE = 9;
+
+  const genres = [
+    'All',
+    'Romance',
+    'Fantasy',
+    'Science Fiction',
+    'Mystery',
+    'Thriller',
+    'Horror',
+    'Historical Fiction',
+    'Contemporary',
+    'Young Adult',
+    'Literary Fiction',
+  ];
 
   const fetchAuthors = async (loadMore = false) => {
     try {
@@ -41,19 +58,22 @@ export default function AuthorsPage() {
       if (loadMore && lastDoc) {
         q = query(
           collection(db, 'authors'),
-          orderBy('followersCount', 'desc'),
+          orderBy('createdAt', 'desc'), // Changed to createdAt to show newest first
           startAfter(lastDoc),
           limit(PAGE_SIZE)
         );
       } else {
         q = query(
           collection(db, 'authors'),
-          orderBy('followersCount', 'desc'),
+          orderBy('createdAt', 'desc'), // Changed to createdAt to show newest first
           limit(PAGE_SIZE)
         );
       }
 
       const snap = await getDocs(q);
+      
+      console.log(`📚 Fetched ${snap.size} authors`);
+      
       if (snap.empty) {
         setHasMore(false);
         return;
@@ -61,11 +81,14 @@ export default function AuthorsPage() {
 
       const data: Author[] = snap.docs.map((d) => {
         const docData = d.data() as Partial<Author>;
+        console.log('Author doc:', d.id, docData.name);
         return {
-          slug: d.id,
+          id: d.id, // This is the UID
+          slug: docData.slug || null, // Premium users might have this
           name: docData.name || 'Unknown Author',
           bio: docData.bio || '',
-          avatarUrl: docData.avatarUrl || '',
+          photoUrl: docData.photoUrl || '',
+          isPremium: docData.isPremium || false,
           followersCount: docData.followersCount || 0,
           booksCount: docData.booksCount || 0,
         };
@@ -96,6 +119,12 @@ export default function AuthorsPage() {
     fetchAuthors(true);
   };
 
+  // Helper to get the correct URL for an author
+  const getAuthorUrl = (author: Author) => {
+    // Premium users with custom slug use their slug, others use UID
+    return `/authors/${author.isPremium && author.slug ? author.slug : author.id}`;
+  };
+
   if (loading) {
     return (
       <main className={styles.stateContainer}>
@@ -108,7 +137,7 @@ export default function AuthorsPage() {
     return (
       <main className={styles.stateContainer}>
         <h2>No authors yet</h2>
-        <p>Once authors join, you’ll see them here!</p>
+        <p>Once authors join, you'll see them here!</p>
       </main>
     );
   }
@@ -129,12 +158,12 @@ export default function AuthorsPage() {
 
       <div className={styles.grid}>
         {authors.map((author) => (
-          <Link key={author.slug} href={`/authors/${author.slug}`}>
+          <Link key={author.id} href={getAuthorUrl(author)}>
             <div className={styles.card}>
               <div className={styles.avatarWrapper}>
-                {author.avatarUrl ? (
+                {author.photoUrl ? (
                   <img
-                    src={author.avatarUrl}
+                    src={author.photoUrl}
                     alt={author.name}
                     className={styles.avatarImg}
                   />
@@ -143,24 +172,14 @@ export default function AuthorsPage() {
                     {author.name.charAt(0).toUpperCase()}
                   </div>
                 )}
+                {author.isPremium && (
+                  <div className={styles.premiumBadge} title="Premium Author">
+                    <Crown size={14} />
+                  </div>
+                )}
               </div>
 
-              <div className={styles.info}>
-                <h2 className={styles.name}>{author.name}</h2>
-                <p className={styles.bio}>
-                  {author.bio ? author.bio.slice(0, 80) + '…' : 'No bio yet.'}
-                </p>
-
-                <div className={styles.stats}>
-                  <span>
-                    <Users size={14} /> {author.followersCount ?? 0} followers
-                  </span>
-                  <span>•</span>
-                  <span>
-                    <BookOpen size={14} /> {author.booksCount ?? 0} books
-                  </span>
-                </div>
-              </div>
+              <h2 className={styles.name}>{author.name}</h2>
             </div>
           </Link>
         ))}

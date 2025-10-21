@@ -24,7 +24,6 @@ export interface UserDoc {
   updatedAt?: FirestoreDate;
 }
 
-/* ─────────── AuthorDoc ─────────── */
 export interface AuthorDoc {
   ownerUid: string;
   name: string;
@@ -33,13 +32,27 @@ export interface AuthorDoc {
   about: string;
   photoUrl: string | null;
   followersCount: number;
+
+  /** Optional Announcements directly on author doc */
+  announcements?: {
+    id?: string;
+    title: string;
+    message: string;
+    createdAt?: FirestoreDate;
+  }[];
+
+  /** Styling / Theme */
   theme: {
     bg: string;
     fg: string;
     accent: string;
     coverUrl: string | null;
   };
+
+  /** Navigation (custom author tabs) */
   nav: { label: string; path: string }[];
+
+  /** Timestamps */
   createdAt?: FirestoreDate;
   updatedAt?: FirestoreDate;
 }

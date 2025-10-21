@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/context/AuthProvider'; // ✅ uses your shared context
+import { useAuth } from '@/context/AuthProvider';
 import { getDbOrThrow } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { BookOpen, PenTool } from 'lucide-react';
@@ -17,7 +17,9 @@ export default function OnboardingPage() {
 
   // Redirect if unauthenticated
   useEffect(() => {
-    if (!loading && !user) router.push('/signup');
+    if (!loading && !user) {
+      router.push('/signup');
+    }
   }, [loading, user, router]);
 
   const handleSelect = async (role: 'reader' | 'author') => {
@@ -32,14 +34,16 @@ export default function OnboardingPage() {
       setError(null);
 
       const db = getDbOrThrow();
-      const ref = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', user.uid);
 
+      // Save user role
       await setDoc(
-        ref,
+        userRef,
         {
           role,
           isAuthor: role === 'author',
-          profileComplete: role === 'reader', // readers skip setup
+          profileComplete: false,
+          isPremium: false, // New field for premium status
           updatedAt: serverTimestamp(),
         },
         { merge: true }
@@ -47,11 +51,39 @@ export default function OnboardingPage() {
 
       console.log(`✅ Role saved as ${role} for user ${user.uid}`);
 
-      if (role === 'author') router.push('/authors/submit');
-      else router.push('/discover');
+      if (role === 'author') {
+        // Create initial author document with UID as document ID
+        const authorRef = doc(db, 'authors', user.uid);
+        
+        await setDoc(authorRef, {
+          name: user.displayName || '',
+          email: user.email || '',
+          bio: '',
+          slug: null, // No slug yet - premium feature!
+          photoUrl: user.photoURL || null,
+          userId: user.uid,
+          isPremium: false,
+          profileComplete: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        
+        console.log('✅ Initial author profile created with UID');
+        
+        // Redirect to author profile setup
+        router.push('/authors/setup');
+      } else {
+        // Readers can go straight to discover
+        await setDoc(
+          userRef,
+          { profileComplete: true },
+          { merge: true }
+        );
+        router.push('/discover');
+      }
     } catch (err: any) {
       console.error('❌ Failed to save role:', err);
-      setError('Something went wrong while saving your choice.');
+      setError('Something went wrong while saving your choice. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -78,7 +110,7 @@ export default function OnboardingPage() {
         transition={{ duration: 0.4 }}
       >
         <h1 className={styles.title}>Welcome to Booklyverse ✨</h1>
-        <p className={styles.subtitle}>Choose how you’ll experience the story.</p>
+        <p className={styles.subtitle}>Choose how you'll experience the story.</p>
 
         <div className={styles.userHint}>
           Signed in as <strong>{user.email}</strong>
@@ -94,7 +126,7 @@ export default function OnboardingPage() {
           >
             <BookOpen size={40} />
             <div>
-              <h3>I’m a Reader</h3>
+              <h3>I'm a Reader</h3>
               <p>Discover and enjoy amazing books.</p>
             </div>
           </motion.button>
@@ -108,13 +140,17 @@ export default function OnboardingPage() {
           >
             <PenTool size={40} />
             <div>
-              <h3>I’m an Author</h3>
+              <h3>I'm an Author</h3>
               <p>Write and publish your stories.</p>
             </div>
           </motion.button>
         </div>
 
-        {isProcessing && <p className={styles.loadingText}>Saving your preference...</p>}
+        {isProcessing && (
+          <p className={styles.loadingText}>
+            Setting up your account...
+          </p>
+        )}
         {error && <p className={styles.errorText}>{error}</p>}
       </motion.div>
     </main>

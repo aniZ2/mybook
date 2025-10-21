@@ -12,6 +12,7 @@ import {
   getDoc,
   query,
   orderBy,
+  onSnapshot,
 } from 'firebase/firestore';
 import { getDbOrThrow } from '@/lib/firebase';
 import { Loader2, Users, ArrowLeft } from 'lucide-react';
@@ -28,24 +29,24 @@ export default function FollowersPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!slug) return;
+    const db = getDbOrThrow();
+
+    // 🔹 Listen to author doc for real-time follower count
+    const authorRef = doc(db, 'authors', slug);
+    const unsubAuthor = onSnapshot(authorRef, (snap) => {
+      if (snap.exists()) setAuthor(snap.data() as AuthorDoc);
+    });
+
+    // 🔹 Fetch followers list (static or you can wrap in onSnapshot if you want real-time)
     const loadFollowers = async () => {
       try {
-        const db = getDbOrThrow();
-
-        // Fetch author details
-        const authorRef = doc(db, 'authors', slug);
-        const authorSnap = await getDoc(authorRef);
-        if (!authorSnap.exists()) throw new Error('Author not found');
-        const authorData = authorSnap.data() as AuthorDoc;
-        setAuthor(authorData);
-
-        // Load followers (collection: authors/{slug}/followers)
         const followersRef = collection(db, 'authors', slug, 'followers');
-        const q = query(followersRef, orderBy('createdAt', 'desc'));
+        const q = query(followersRef, orderBy('followedAt', 'desc'));
         const snaps = await getDocs(q);
 
         const followerData = snaps.docs.map((d) => ({
-          id: d.id, // Firestore doc ID
+          id: d.id,
           ...(d.data() as UserDoc),
         })) as (UserDoc & { id: string })[];
 
@@ -57,7 +58,9 @@ export default function FollowersPage() {
         setLoading(false);
       }
     };
-    if (slug) loadFollowers();
+
+    loadFollowers();
+    return () => unsubAuthor();
   }, [slug]);
 
   if (loading) {
@@ -79,6 +82,8 @@ export default function FollowersPage() {
       </main>
     );
   }
+
+  const followersCount = author.followersCount ?? followers.length;
 
   return (
     <main className={styles.authorPage}>
@@ -115,8 +120,8 @@ export default function FollowersPage() {
       {/* ═══════════════════════════ FOLLOWERS LIST ═══════════════════════════ */}
       <section className={styles.booksSection}>
         <h2 className={styles.sectionTitle}>
-          <Users size={16} /> {followers.length} follower
-          {followers.length !== 1 && 's'}
+          <Users size={16} /> {followersCount} follower
+          {followersCount !== 1 && 's'}
         </h2>
 
         {followers.length === 0 ? (
