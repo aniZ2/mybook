@@ -377,7 +377,7 @@ export default function AuthorProfilePage({
       {/* FOLLOWERS + ANNOUNCEMENTS */}
       <section className={styles.connectionsSection}>
         <div className={styles.splitLayout}>
-          {/* LEFT */}
+          {/* LEFT: Followers / Following */}
           <div className={styles.connectionsLeft}>
             <div className={styles.connectionsHeader}>
               <button
@@ -398,20 +398,40 @@ export default function AuthorProfilePage({
               </button>
             </div>
 
-            <div className={styles.simpleList}>
-              {(view === 'followers' ? followers : following).map((f) => (
-                <Link
-                  key={f.docId}
-                  href={`/authors/${f.slug || f.docId}`}
-                  className={styles.simpleListItem}
-                >
-                  {f.userName}
-                </Link>
-              ))}
+            <div className={styles.followersList + ' ' + (view === 'followers' ? styles.active : '')}>
+              {followers.length ? (
+                followers.map((f) => (
+                  <Link
+                    key={f.docId}
+                    href={`/authors/${f.slug || f.docId}`}
+                    className={styles.simpleListItem}
+                  >
+                    {f.userName}
+                  </Link>
+                ))
+              ) : (
+                <p className={styles.emptyMessage}>No followers yet.</p>
+              )}
+            </div>
+
+            <div className={styles.followingList + ' ' + (view === 'following' ? styles.active : '')}>
+              {following.length ? (
+                following.map((f) => (
+                  <Link
+                    key={f.docId}
+                    href={`/authors/${f.slug || f.docId}`}
+                    className={styles.simpleListItem}
+                  >
+                    {f.userName}
+                  </Link>
+                ))
+              ) : (
+                <p className={styles.emptyMessage}>Not following anyone yet.</p>
+              )}
             </div>
           </div>
 
-          {/* RIGHT */}
+          {/* RIGHT: Announcements */}
           <div className={styles.announcementsRight}>
             <h3 className={styles.sectionTitle}>Announcements</h3>
 
