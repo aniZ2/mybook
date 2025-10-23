@@ -11,27 +11,25 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
+
+    // 🆕 add these two lines
+    "types": ["react", "react-dom"],
+    "forceConsistentCasingInFileNames": true,
 
     "plugins": [{ "name": "next" }],
 
     "paths": {
       "@/*": ["./src/*"],
-      "@admin/*": ["./src/lib/firebase-admin.ts"]  // ✅ Explicit alias for server-only admin imports
+      "@admin/*": ["./src/lib/firebase-admin.ts"]
     }
   },
-
   "include": [
     "next-env.d.ts",
     "src/**/*",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
-
-  "exclude": [
-    "node_modules",
-    "functions",
-    ".firebase",
-    ".next"
-  ]
+  "exclude": ["node_modules", "functions", ".firebase", ".next"]
 }

@@ -39,6 +39,7 @@ export interface AuthorDoc {
     title: string;
     message: string;
     createdAt?: FirestoreDate;
+    timeAgo?: string;
   }[];
 
   /** Styling / Theme */

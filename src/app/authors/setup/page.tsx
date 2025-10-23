@@ -20,6 +20,33 @@ export default function AuthorSetupPage() {
     twitter: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bioWordCount, setBioWordCount] = useState(0);
+
+  // Count words in bio
+  const countWords = (text: string): number => {
+    const trimmed = text.trim();
+    if (!trimmed) return 0;
+    return trimmed.split(/\s+/).length;
+  };
+
+  // Update bio and enforce word limit
+  const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newBio = e.target.value;
+    const wordCount = countWords(newBio);
+
+    // Only update if under limit or if user is deleting
+    if (wordCount <= 100) {
+      setFormData({ ...formData, bio: newBio });
+      setBioWordCount(wordCount);
+    } else {
+      // If over limit, trim to 100 words
+      const words = newBio.trim().split(/\s+/);
+      const trimmedBio = words.slice(0, 100).join(' ');
+      setFormData({ ...formData, bio: trimmedBio });
+      setBioWordCount(100);
+      toast.error('Bio limited to 100 words');
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -38,12 +65,14 @@ export default function AuthorSetupPage() {
 
         if (authorSnap.exists()) {
           const data = authorSnap.data();
+          const loadedBio = data.bio || '';
           setFormData({
             name: data.name || user.displayName || '',
-            bio: data.bio || '',
+            bio: loadedBio,
             website: data.website || '',
             twitter: data.twitter || '',
           });
+          setBioWordCount(countWords(loadedBio));
         } else {
           // Initialize with user data
           setFormData(prev => ({
@@ -69,6 +98,13 @@ export default function AuthorSetupPage() {
 
     if (!formData.name.trim()) {
       toast.error('Please enter your name');
+      return;
+    }
+
+    // Extra validation for bio word count
+    const bioWords = countWords(formData.bio);
+    if (bioWords > 100) {
+      toast.error('Bio must be 100 words or less');
       return;
     }
 
@@ -125,6 +161,13 @@ export default function AuthorSetupPage() {
 
   if (!user) return null;
 
+  // Determine word counter color
+  const getWordCountColor = () => {
+    if (bioWordCount >= 100) return '#ef4444'; // red when at limit
+    if (bioWordCount >= 90) return '#f59e0b'; // orange when close
+    return '#94a3b8'; // default gray
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.card}>
@@ -160,14 +203,29 @@ export default function AuthorSetupPage() {
             <textarea
               id="bio"
               value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+              onChange={handleBioChange}
               placeholder="Tell readers about yourself and your writing..."
               className={styles.textarea}
               rows={4}
             />
-            <span className={styles.hint}>
-              Share your writing style, genres, or what inspires you
-            </span>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginTop: '0.5rem'
+            }}>
+              <span className={styles.hint}>
+                Share your writing style, genres, or what inspires you
+              </span>
+              <span style={{ 
+                fontSize: '0.875rem', 
+                fontWeight: 500,
+                color: getWordCountColor(),
+                transition: 'color 0.2s ease'
+              }}>
+                {bioWordCount}/100 words
+              </span>
+            </div>
           </div>
 
           <div className={styles.field}>

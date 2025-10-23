@@ -2,14 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-
-  // ✅ swcMinify is now always true by default — remove it.
-  // ✅ experimental.* keys moved to root-level config.
-
-  // ✅ Replace old experimental flags:
-  typedRoutes: false,
-  serverExternalPackages: ['firebase-admin'],
-
+  experimental: {
+    // 👇 Add this
+    allowedDevOrigins: ['http://192.168.12.225:3000'],
+    typedRoutes: false,
+    serverExternalPackages: ['firebase-admin']
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'covers.openlibrary.org', pathname: '/**' },
