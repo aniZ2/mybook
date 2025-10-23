@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { getDbOrThrow } from '@/lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { User, FileText, Link as LinkIcon, Crown } from 'lucide-react';
+import { User, FileText, Link as LinkIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import styles from './setup.module.css';
+import { updateAuthorCache } from '@/app/actions/authorActions'; // 👈 CHANGE THIS
 
 export default function AuthorSetupPage() {
   const { user, loading } = useAuth();
@@ -22,24 +23,20 @@ export default function AuthorSetupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bioWordCount, setBioWordCount] = useState(0);
 
-  // Count words in bio
   const countWords = (text: string): number => {
     const trimmed = text.trim();
     if (!trimmed) return 0;
     return trimmed.split(/\s+/).length;
   };
 
-  // Update bio and enforce word limit
   const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newBio = e.target.value;
     const wordCount = countWords(newBio);
 
-    // Only update if under limit or if user is deleting
     if (wordCount <= 100) {
       setFormData({ ...formData, bio: newBio });
       setBioWordCount(wordCount);
     } else {
-      // If over limit, trim to 100 words
       const words = newBio.trim().split(/\s+/);
       const trimmedBio = words.slice(0, 100).join(' ');
       setFormData({ ...formData, bio: trimmedBio });
@@ -54,7 +51,6 @@ export default function AuthorSetupPage() {
       return;
     }
 
-    // Load existing author data
     async function loadAuthorData() {
       if (!user) return;
       
@@ -74,7 +70,6 @@ export default function AuthorSetupPage() {
           });
           setBioWordCount(countWords(loadedBio));
         } else {
-          // Initialize with user data
           setFormData(prev => ({
             ...prev,
             name: user.displayName || '',
@@ -101,7 +96,6 @@ export default function AuthorSetupPage() {
       return;
     }
 
-    // Extra validation for bio word count
     const bioWords = countWords(formData.bio);
     if (bioWords > 100) {
       toast.error('Bio must be 100 words or less');
@@ -112,10 +106,13 @@ export default function AuthorSetupPage() {
 
     try {
       const db = getDbOrThrow();
-      const authorRef = doc(db, 'authors', user.uid); // Using UID as doc ID
+      const authorRef = doc(db, 'authors', user.uid);
       const userRef = doc(db, 'users', user.uid);
 
-      // Update author profile using setDoc with merge (creates if doesn't exist)
+      const authorSnap = await getDoc(authorRef);
+      const isNewAuthor = !authorSnap.exists();
+
+      // 1. Create/update author in Firestore
       await setDoc(authorRef, {
         name: formData.name.trim(),
         bio: formData.bio.trim(),
@@ -124,22 +121,32 @@ export default function AuthorSetupPage() {
         email: user.email || '',
         photoUrl: user.photoURL || null,
         userId: user.uid,
-        slug: null, // No slug for free users
+        slug: null,
         isPremium: false,
         profileComplete: true,
+        createdAt: isNewAuthor ? serverTimestamp() : authorSnap.data()?.createdAt,
         updatedAt: serverTimestamp(),
       }, { merge: true });
 
-      // Mark user profile as complete
       await setDoc(userRef, {
         profileComplete: true,
         updatedAt: serverTimestamp(),
       }, { merge: true });
 
-      console.log('✅ Author profile saved successfully');
+      console.log('✅ Author profile saved');
+
+      // 2. Update both caches (via server action)
+      if (isNewAuthor) {
+        const result = await updateAuthorCache(user.uid); // 👈 CALL SERVER ACTION
+        
+        if (result.success) {
+          console.log('🎉 Both caches updated!');
+        } else {
+          console.error('⚠️ Cache update failed (non-critical)');
+        }
+      }
+
       toast.success('🎉 Profile setup complete!');
-      
-      // Redirect to author profile using UID
       router.push(`/authors/${user.uid}`);
     } catch (err: any) {
       console.error('Error saving author profile:', err);
@@ -161,11 +168,10 @@ export default function AuthorSetupPage() {
 
   if (!user) return null;
 
-  // Determine word counter color
   const getWordCountColor = () => {
-    if (bioWordCount >= 100) return '#ef4444'; // red when at limit
-    if (bioWordCount >= 90) return '#f59e0b'; // orange when close
-    return '#94a3b8'; // default gray
+    if (bioWordCount >= 100) return '#ef4444';
+    if (bioWordCount >= 90) return '#f59e0b';
+    return '#94a3b8';
   };
 
   return (

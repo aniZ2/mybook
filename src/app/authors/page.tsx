@@ -3,22 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import {
-  collection,
-  getDocs,
-  orderBy,
-  query,
-  limit,
-  startAfter,
-  DocumentSnapshot,
-} from 'firebase/firestore';
-import { getDbOrThrow } from '@/lib/firebase';
-import { Users, BookOpen, Loader2, Crown } from 'lucide-react';
+import { Loader2, Crown } from 'lucide-react';
 import styles from './authorsList.module.css';
 
 interface Author {
-  id: string; // Changed from slug to id (UID)
-  slug?: string | null; // Optional slug for premium users
+  id: string;
+  slug?: string | null;
   name: string;
   bio?: string;
   photoUrl?: string;
@@ -30,105 +20,76 @@ interface Author {
 export default function AuthorsPage() {
   const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
-  const PAGE_SIZE = 9;
+  const [error, setError] = useState<string | null>(null);
 
-  const genres = [
-    'All',
-    'Romance',
-    'Fantasy',
-    'Science Fiction',
-    'Mystery',
-    'Thriller',
-    'Horror',
-    'Historical Fiction',
-    'Contemporary',
-    'Young Adult',
-    'Literary Fiction',
-  ];
-
-  const fetchAuthors = async (loadMore = false) => {
+  const fetchAuthors = async () => {
     try {
-      const db = getDbOrThrow();
-      let q;
-
-      if (loadMore && lastDoc) {
-        q = query(
-          collection(db, 'authors'),
-          orderBy('createdAt', 'desc'), // Changed to createdAt to show newest first
-          startAfter(lastDoc),
-          limit(PAGE_SIZE)
-        );
-      } else {
-        q = query(
-          collection(db, 'authors'),
-          orderBy('createdAt', 'desc'), // Changed to createdAt to show newest first
-          limit(PAGE_SIZE)
-        );
-      }
-
-      const snap = await getDocs(q);
+      setLoading(true);
+      setError(null);
       
-      console.log(`📚 Fetched ${snap.size} authors`);
+      // ✅ FIXED - removed cache: 'no-store'
+      const response = await fetch('/api/authors?pageSize=9');
       
-      if (snap.empty) {
-        setHasMore(false);
-        return;
+      if (!response.ok) {
+        throw new Error('Failed to fetch authors');
       }
 
-      const data: Author[] = snap.docs.map((d) => {
-        const docData = d.data() as Partial<Author>;
-        console.log('Author doc:', d.id, docData.name);
-        return {
-          id: d.id, // This is the UID
-          slug: docData.slug || null, // Premium users might have this
-          name: docData.name || 'Unknown Author',
-          bio: docData.bio || '',
-          photoUrl: docData.photoUrl || '',
-          isPremium: docData.isPremium || false,
-          followersCount: docData.followersCount || 0,
-          booksCount: docData.booksCount || 0,
-        };
-      });
-
-      if (loadMore) {
-        setAuthors((prev) => [...prev, ...data]);
-      } else {
-        setAuthors(data);
-      }
-
-      setLastDoc(snap.docs[snap.docs.length - 1]);
-      setHasMore(snap.docs.length === PAGE_SIZE);
+      const data = await response.json();
+      setAuthors(data.authors || []);
+      
+      console.log('📚 Loaded authors:', data.authors?.length);
     } catch (err) {
       console.error('Error fetching authors:', err);
+      setError('Failed to load authors. Please try again.');
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchAuthors(false);
+    fetchAuthors();
   }, []);
 
-  const handleLoadMore = () => {
-    setLoadingMore(true);
-    fetchAuthors(true);
+  const getAuthorUrl = (author: Author) => {
+    return `/authors/${author.isPremium && author.slug ? author.slug : author.id}`;
   };
 
-  // Helper to get the correct URL for an author
-  const getAuthorUrl = (author: Author) => {
-    // Premium users with custom slug use their slug, others use UID
-    return `/authors/${author.isPremium && author.slug ? author.slug : author.id}`;
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase();
   };
 
   if (loading) {
     return (
       <main className={styles.stateContainer}>
+        <Loader2 className={styles.spin} size={48} />
         <h2>Loading authors...</h2>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className={styles.stateContainer}>
+        <h2>Oops!</h2>
+        <p>{error}</p>
+        <button 
+          onClick={fetchAuthors}
+          style={{
+            marginTop: '1rem',
+            padding: '0.75rem 1.5rem',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+          }}
+        >
+          Try Again
+        </button>
       </main>
     );
   }
@@ -169,7 +130,7 @@ export default function AuthorsPage() {
                   />
                 ) : (
                   <div className={styles.avatarFallback}>
-                    {author.name.charAt(0).toUpperCase()}
+                    {getInitials(author.name)}
                   </div>
                 )}
                 {author.isPremium && (
@@ -184,18 +145,6 @@ export default function AuthorsPage() {
           </Link>
         ))}
       </div>
-
-      {hasMore && (
-        <div className={styles.loadMoreContainer}>
-          <button
-            onClick={handleLoadMore}
-            className={styles.loadMoreButton}
-            disabled={loadingMore}
-          >
-            {loadingMore ? <Loader2 className={styles.spin} size={18} /> : 'Load More'}
-          </button>
-        </div>
-      )}
     </main>
   );
 }

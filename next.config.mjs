@@ -2,12 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  
+  // Move typedRoutes to root level (not in experimental)
+  typedRoutes: false,
+  
+  // Move serverExternalPackages to root level (Next.js 15+)
+  serverExternalPackages: ['firebase-admin'],
+  
   experimental: {
-    // 👇 Add this
-    allowedDevOrigins: ['http://192.168.12.225:3000'],
-    typedRoutes: false,
-    serverExternalPackages: ['firebase-admin']
+    // Keep only valid experimental features here if needed
+    // allowedDevOrigins is not a valid Next.js config
   },
+  
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'covers.openlibrary.org', pathname: '/**' },

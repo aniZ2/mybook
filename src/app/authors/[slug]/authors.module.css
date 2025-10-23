@@ -250,11 +250,11 @@ body {
   width: 22px;
   height: 22px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--pink-primary), var(--pink-light));
-  color: white;
-  border: 1px solid var(--glass-border-strong);
-  box-shadow: 0 0 8px rgba(236, 72, 153, 0.4);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+  background: radial-gradient(circle at 30% 30%, #facc15, #b45309 70%);
+  color: #fffbea;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
   z-index: 2;
 }
 
