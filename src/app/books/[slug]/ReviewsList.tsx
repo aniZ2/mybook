@@ -1,38 +1,42 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { getDbOrThrow } from '@/lib/firebase';
 import type { ReviewDoc } from '@/types/firestore';
 
 export default function ReviewsList({ slug }: { slug: string }) {
   const [reviews, setReviews] = useState<ReviewDoc[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const db = getDbOrThrow();
-    if (!db) return; // ✅ Prevent null Firestore during SSR or uninitialized state
+    const fetchReviews = async () => {
+      try {
+        // ✅ Fetch from API (uses dual-layer cache)
+        const response = await fetch(`/api/books/${slug}/reviews`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch reviews');
+        }
 
-    const q = query(
-      collection(db, 'books', slug, 'reviews'),
-      orderBy('createdAt', 'desc')
-    );
+        const data = await response.json();
+        setReviews(data.reviews || []);
+      } catch (error) {
+        console.error('Error loading reviews:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const unsubscribe = onSnapshot(q, (snap) => {
-      setReviews(
-        snap.docs.map((d) => ({ id: d.id, ...(d.data() as ReviewDoc) }))
-      );
-    });
-
-    return () => unsubscribe();
+    fetchReviews();
   }, [slug]);
 
   const summary = useMemo(() => {
     if (!reviews.length) return { avg: 0, count: 0 };
     const count = reviews.length;
-    const avg =
-      reviews.reduce((s, r) => s + (r.rating || 0), 0) / count;
+    const avg = reviews.reduce((s, r) => s + (r.rating || 0), 0) / count;
     return { avg: Math.round(avg * 10) / 10, count };
   }, [reviews]);
+
+  if (loading) return <p className="muted">Loading reviews...</p>;
 
   return (
     <section style={{ marginTop: '1rem' }}>

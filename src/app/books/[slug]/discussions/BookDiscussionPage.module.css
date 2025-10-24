@@ -221,3 +221,23 @@
     font-size: 1.1rem;
   }
 }
+.actionLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #facc15;
+  background: rgba(148, 163, 184, 0.05);
+  border: 1px solid #475569;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.actionLink:hover {
+  background: rgba(250, 204, 21, 0.1);
+  color: #fde047;
+  border-color: #facc15;
+}

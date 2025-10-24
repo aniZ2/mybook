@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { getDbOrThrow } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthProvider';
+import { updateReviewCache } from '@/app/actions/reviewActions'; // 👈 ADD THIS
 
 export default function AddReview({ slug }: { slug: string }) {
   const { user } = useAuth();
@@ -23,16 +24,33 @@ export default function AddReview({ slug }: { slug: string }) {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, 'books', slug, 'reviews'), {
+      // 1. Add review to Firestore
+      const docRef = await addDoc(collection(db, 'books', slug, 'reviews'), {
         userId: user.uid,
         userName: user.displayName || 'Anonymous',
         rating,
         text,
         createdAt: serverTimestamp(),
       });
+
+      console.log('✅ Review added:', docRef.id);
+
+      // 2. Update cache 👈 ADD THIS
+      try {
+        await updateReviewCache(slug, docRef.id);
+        console.log('✅ Review cache updated - new review visible immediately!');
+      } catch (cacheErr) {
+        console.error('⚠️ Cache update failed (non-critical):', cacheErr);
+        // Don't fail the whole operation if cache update fails
+      }
+
+      // 3. Reset form
       setText('');
       setRating(5);
       alert('Review submitted!');
+      
+      // 4. Reload the page to show new review
+      window.location.reload();
     } catch (err) {
       console.error('Error submitting review:', err);
       alert('Failed to submit review.');

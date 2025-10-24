@@ -6,6 +6,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getDbOrThrow, getStorageOrThrow } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthProvider';
+import { updateClubCache } from '@/app/actions/clubActions'; // 👈 ADD THIS
 import type { ClubDoc } from '@/types/firestore';
 
 const CATEGORIES: ClubDoc['category'][] = [
@@ -125,7 +126,10 @@ export default function CreateClubForm() {
         updatedAt: serverTimestamp(),
       };
 
+      // 1. Create club document
       await setDoc(doc(db, 'clubs', slug), clubData);
+      
+      // 2. Create member document
       await setDoc(doc(db, 'clubs', slug, 'members', user.uid), {
         userId: user.uid,
         userName: user.displayName || 'Anonymous',
@@ -133,6 +137,17 @@ export default function CreateClubForm() {
         role: 'admin',
         joinedAt: serverTimestamp(),
       });
+
+      console.log('✅ Club created:', slug);
+
+      // 3. Update cache 👈 ADD THIS
+      try {
+        await updateClubCache(slug);
+        console.log('✅ Cache updated - new club visible on clubs page!');
+      } catch (cacheErr) {
+        console.error('⚠️ Cache update failed (non-critical):', cacheErr);
+        // Don't fail the whole operation if cache update fails
+      }
 
       router.push(`/clubs/${slug}`);
     } catch (err) {

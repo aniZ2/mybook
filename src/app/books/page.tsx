@@ -3,11 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
-import { getDbOrThrow } from '@/lib/firebase';
-import { bookConverter, BookDoc } from '@/types/firestore';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
+import { BookDoc } from '@/types/firestore';
 import styles from './books.module.css';
 
 export default function BooksPage() {
@@ -24,12 +22,16 @@ export default function BooksPage() {
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const db = getDbOrThrow();
-        const booksRef = collection(db, 'books').withConverter(bookConverter);
-        const q = query(booksRef, orderBy('createdAt', 'desc'), limit(30));
-        const snap = await getDocs(q);
-        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setBooks(docs);
+        // ✅ Fetch from API (uses cache)
+        const response = await fetch('/api/books/recent?limit=30');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch books');
+        }
+
+        const data = await response.json();
+        setBooks(data.books || []);
+        console.log('📚 Loaded books:', data.books?.length);
       } catch (err) {
         console.error('Error fetching books:', err);
       } finally {
@@ -71,7 +73,7 @@ export default function BooksPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Nomination failed');
 
-      showToast(`“${book.title}” nominated successfully!`);
+      showToast(`"${book.title}" nominated successfully!`);
       setTimeout(() => router.push(`/clubs/${selectForNomination}`), 1500);
     } catch (err) {
       console.error('❌ Nomination failed:', err);

@@ -1,42 +1,80 @@
+// app/my-library/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { useAuth } from '@/context/AuthProvider'
 
 interface BookItem {
   id: string
   title: string
   authors: string[]
   savedAt?: any
+  coverUrl?: string
 }
 
 export default function MyLibrary() {
+  const { user } = useAuth()
   const [books, setBooks] = useState<BookItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!db) { // ✅ Add db check
-      setError('Database not initialized')
+    if (!user) {
+      setLoading(false)
       return
     }
 
-    try {
-      const q = query(
-        collection(db, 'books'),         // or: 'users', user.uid, 'library'
-        orderBy('savedAt', 'desc')
-      )
+    const fetchLibrary = async () => {
+      try {
+        // Get user's ID token
+        const idToken = await user.getIdToken();
 
-      const unsub = onSnapshot(q, snap =>
-        setBooks(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<BookItem,'id'>) })))
-      )
-      
-      return () => unsub()
-    } catch (err) {
-      console.error('Error setting up library listener:', err)
-      setError('Failed to load library')
+        // Fetch from API (uses cache)
+        const response = await fetch('/api/library', {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+          },
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch library')
+        }
+
+        const data = await response.json()
+        setBooks(data.books || [])
+        console.log('📚 Loaded library:', data.books?.length, 'books')
+      } catch (err) {
+        console.error('Error loading library:', err)
+        setError('Failed to load library')
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [])
+
+    fetchLibrary()
+  }, [user])
+
+  if (!user) {
+    return (
+      <main className="grid">
+        <h1 className="h1">My Library</h1>
+        <div className="panel">
+          <p className="muted">Please sign in to view your library.</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (loading) {
+    return (
+      <main className="grid">
+        <h1 className="h1">My Library</h1>
+        <div className="panel">
+          <p className="muted">Loading your library...</p>
+        </div>
+      </main>
+    )
+  }
 
   if (error) {
     return (
@@ -59,6 +97,13 @@ export default function MyLibrary() {
       ) : (
         books.map(b => (
           <div key={b.id} className="panel col-6">
+            {b.coverUrl && (
+              <img 
+                src={b.coverUrl} 
+                alt={b.title}
+                style={{ width: '100px', height: '150px', objectFit: 'cover' }}
+              />
+            )}
             <strong>{b.title}</strong>
             <div className="muted">{b.authors?.join(', ') || 'Unknown author'}</div>
           </div>

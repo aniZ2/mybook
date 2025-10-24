@@ -1,0 +1,509 @@
+/* ─────────── PAGE CONTAINER ─────────── */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  color: #e2e8f0;
+}
+
+/* ─────────── CLUB BANNER ─────────── */
+.fromClubBanner {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(147, 51, 234, 0.1);
+  border: 1px solid rgba(147, 51, 234, 0.4);
+  color: #d6bcfa;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.fromClubLink {
+  color: #fde047;
+  text-decoration: underline;
+}
+
+/* ─────────── HERO SECTION ─────────── */
+.hero {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 2rem;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 768px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 1.5rem;
+  }
+}
+
+/* ─────────── LEFT PANEL ─────────── */
+.leftPane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cover,
+.noCover {
+  width: 240px;
+  height: 340px;
+  border-radius: 0.75rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+@media (max-width: 480px) {
+  .cover,
+  .noCover {
+    width: 180px;
+    height: 260px;
+  }
+}
+
+/* ─────────── ACTIONS ─────────── */
+.actions {
+  width: 100%;
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Main reading list button */
+.addBtn,
+.inListBtn {
+  width: 100%;
+  max-width: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.addBtn {
+  background: linear-gradient(90deg, #facc15 0%, #fcd34d 100%);
+  color: #111;
+}
+.addBtn:hover {
+  box-shadow: 0 6px 18px rgba(250, 204, 21, 0.3);
+}
+
+.inListBtn {
+  background: #16a34a;
+  color: #fff;
+}
+.inListBtn:hover {
+  background: #15803d;
+}
+
+/* Row of secondary actions */
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.actionRow .shareBtn,
+.actionRow .actionLink {
+  flex: 1 1 30%;
+  min-width: 160px;
+  max-width: 200px;
+  text-align: center;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* Share button */
+.shareBtn {
+  background: rgba(148, 163, 184, 0.05);
+  border: 1px solid #475569;
+  color: #cbd5e1;
+}
+.shareBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Link buttons */
+.actionLink {
+  border: 1px solid #475569;
+  background: rgba(148, 163, 184, 0.05);
+  color: #facc15;
+}
+.actionLink:hover {
+  background: rgba(250, 204, 21, 0.08);
+  border-color: #facc15;
+  color: #fde047;
+}
+
+/* Mobile layout — two per row */
+@media (max-width: 480px) {
+  .actionRow {
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  .actionRow .shareBtn,
+  .actionRow .actionLink {
+    flex: 1 1 48%;
+    min-width: 140px;
+  }
+}
+
+/* ─────────── RIGHT PANEL ─────────── */
+.rightPane {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.author {
+  font-size: 1.1rem;
+  color: #facc15;
+}
+
+.ratingBox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  width: fit-content;
+}
+
+.starIcon {
+  color: #facc15;
+  fill: #facc15;
+}
+
+.ratingValue {
+  color: #facc15;
+  font-weight: 700;
+}
+
+.reviewCount {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.meta,
+.summary {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.meta h3,
+.summary h3 {
+  color: #facc15;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.meta p,
+.summary p {
+  font-size: 0.9rem;
+  color: #cbd5e1;
+}
+
+.meta span {
+  color: #fff;
+}
+
+/* ─────────── REVIEWS ─────────── */
+.reviews {
+  margin-top: 3rem;
+  border-top: 1px solid #1e293b;
+  padding-top: 2rem;
+}
+.reviews h2 {
+  color: #facc15;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+
+/* ─────────── BOTTOM BACK BUTTON ─────────── */
+.bottomBack {
+  text-align: center;
+  margin-top: 3rem;
+}
+
+.backBtnBottom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.1);
+  border: 1px solid #facc15;
+  border-radius: 0.75rem;
+  padding: 0.8rem 1.6rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.backBtnBottom:hover {
+  background: rgba(250, 204, 21, 0.2);
+  color: #fde047;
+}
+
+/* Sticky floating on mobile */
+@media (max-width: 768px) {
+  .bottomBack {
+    position: fixed;
+    bottom: 1.2rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 40;
+    pointer-events: none;
+  }
+  .backBtnBottom {
+    pointer-events: auto;
+    background: rgba(250, 204, 21, 0.15);
+    backdrop-filter: blur(6px);
+    border: 1px solid #facc15;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+  .backBtnBottom:hover {
+    background: rgba(250, 204, 21, 0.25);
+  }
+}
+
+/* ─────────── MODAL ─────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+}
+.modal h3 {
+  color: #facc15;
+  margin-bottom: 1rem;
+}
+.copyBtn {
+  background: linear-gradient(90deg, #facc15 0%, #fcd34d 100%);
+  color: #111;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+}
+.copyBtn:hover {
+  box-shadow: 0 6px 18px rgba(250, 204, 21, 0.3);
+}
+.closeBtn {
+  background: transparent;
+  border: 1px solid #475569;
+  color: #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 0.6rem 1rem;
+  width: 100%;
+  cursor: pointer;
+}
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ─────────── LOADING / NOT FOUND ─────────── */
+.loadingWrapper,
+.notFoundWrapper {
+  text-align: center;
+  color: #94a3b8;
+  padding: 3rem;
+}
+/* ACTION ROW */
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.actionRow .shareBtn,
+.actionRow .actionLink {
+  flex: 1 1 30%;
+  min-width: 160px;
+  max-width: 200px;
+  text-align: center;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* Mobile: two side-by-side, one centered below */
+@media (max-width: 768px) {
+  .actionRow {
+    justify-content: space-between;
+  }
+
+  /* The first two stay side by side */
+  .actionRow .actionLink {
+    flex: 1 1 48%;
+  }
+
+  /* Share Book spans full width and centers */
+  .actionRow .shareBtn {
+    flex: 1 1 100%;
+    max-width: none;
+    justify-content: center;
+    margin-top: 0.6rem;
+  }
+}
+/* ─────────── REVIEWS SECTION ─────────── */
+.reviews {
+  margin-top: 3rem;
+  border-top: 1px solid #1e293b;
+  padding-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.reviews h2 {
+  color: #facc15;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.reviewsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Make AddReview form responsive */
+.reviews form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  color: #e2e8f0;
+}
+
+.reviews textarea {
+  min-height: 100px;
+  resize: vertical;
+  border-radius: 0.5rem;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+.reviews textarea:focus {
+  outline: none;
+  border-color: #facc15;
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.2);
+}
+
+.reviews button[type='submit'] {
+  align-self: flex-start;
+  background: linear-gradient(90deg, #facc15 0%, #fcd34d 100%);
+  color: #111;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.7rem 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reviews button[type='submit']:hover {
+  box-shadow: 0 6px 18px rgba(250, 204, 21, 0.3);
+}
+
+/* ─────────── FIX BACK BUTTON OVERLAP ─────────── */
+/* Add breathing room below reviews so the back button never covers it */
+.reviews {
+  margin-bottom: 6rem; /* space above the floating Back button */
+}
+
+@media (max-width: 768px) {
+  .reviews form {
+    padding: 1rem;
+  }
+  .reviews textarea {
+    font-size: 0.9rem;
+  }
+  .reviews button[type='submit'] {
+    width: 100%; /* full width on mobile */
+    text-align: center;
+  }
+}

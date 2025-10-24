@@ -3,13 +3,15 @@ import { getAdminDb } from '@/lib/firebase-admin';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const dbAdmin = getAdminDb();
-    const { slug } = params;
+    // ✅ unwrap the slug (Next.js 14+ params are Promises)
+    const { slug } = await params;
 
-    // Get book by slug
+    const dbAdmin = getAdminDb();
+
+    // 🔍 Get book by slug
     const bookRef = dbAdmin.collection('books').doc(slug);
     const bookSnap = await bookRef.get();
 
@@ -18,33 +20,45 @@ export async function GET(
     }
 
     const bookData = bookSnap.data();
-    const clubSlugs = bookData?.clubsReading || [];
+    const clubSlugs: string[] = bookData?.clubsReading || [];
 
-    if (clubSlugs.length === 0) {
+    if (!Array.isArray(clubSlugs) || clubSlugs.length === 0) {
       return NextResponse.json({ clubs: [] });
     }
 
-    // Get all clubs reading this book
-    const clubsSnapshot = await dbAdmin
-      .collection('clubs')
-      .where('__name__', 'in', clubSlugs)
-      .get();
+    // ⚠️ Firestore “in” query supports max 10 items per call
+    const chunked = [];
+    for (let i = 0; i < clubSlugs.length; i += 10) {
+      chunked.push(clubSlugs.slice(i, i + 10));
+    }
 
-    const clubs = clubsSnapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        slug: doc.id,
-        name: data.name,
-        description: data.description,
-        iconUrl: data.iconUrl,
-        membersCount: data.membersCount,
-        isPrivate: data.isPrivate || false,
-        isCurrentlyReading: data.currentBookId === slug, // Compare with book slug
-      };
-    });
+    const clubs: any[] = [];
 
-    // Sort: currently reading first, then by member count
+    // 🔁 Fetch clubs in batches of ≤10
+    for (const chunk of chunked) {
+      const clubsSnapshot = await dbAdmin
+        .collection('clubs')
+        .where('__name__', 'in', chunk)
+        .get();
+
+      clubs.push(
+        ...clubsSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            slug: doc.id,
+            name: data.name,
+            description: data.description || '',
+            iconUrl: data.iconUrl || '',
+            membersCount: data.membersCount || 0,
+            isPrivate: data.isPrivate || false,
+            isCurrentlyReading: data.currentBookId === slug,
+          };
+        })
+      );
+    }
+
+    // 🧩 Sort: current book first, then by member count
     clubs.sort((a, b) => {
       if (a.isCurrentlyReading && !b.isCurrentlyReading) return -1;
       if (!a.isCurrentlyReading && b.isCurrentlyReading) return 1;
@@ -53,9 +67,14 @@ export async function GET(
 
     return NextResponse.json({ clubs });
   } catch (error) {
-    console.error('Error fetching clubs:', error);
+    console.error('🔥 Error fetching clubs:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch clubs' },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch clubs',
+      },
       { status: 500 }
     );
   }

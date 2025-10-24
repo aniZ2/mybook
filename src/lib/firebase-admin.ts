@@ -1,72 +1,90 @@
-// src/lib/firebase-admin.ts
 import * as admin from 'firebase-admin';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-/* ─────────────────────────────
-   🧠 Local vs Hosted Detection
-───────────────────────────── */
-const isServer = typeof window === 'undefined';
+/**
+ * ────────────────────────────────────────────────
+ * 🧠 Firebase Admin Singleton Initialization
+ * Works in both Vercel (serverless) and local dev.
+ * Prevents duplicate initialization per cold start.
+ * ────────────────────────────────────────────────
+ */
+
 let app: admin.app.App | undefined;
-let adminDb: Firestore | null = null;
+let db: Firestore | undefined;
 
-/* ─────────────────────────────
+/* ───────────────────────────────
    🔐 Load Credentials
-   Priority:
-   1. SERVICE_ACCOUNT_JSON (Vercel/Firebase env)
-   2. GOOGLE_APPLICATION_CREDENTIALS (local JSON file path)
-───────────────────────────── */
-let serviceAccountString = process.env.SERVICE_ACCOUNT_JSON ?? null;
+─────────────────────────────── */
+const serviceAccountJson = process.env.SERVICE_ACCOUNT_JSON ?? null;
+const projectId =
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+  process.env.FIREBASE_PROJECT_ID;
 
-if (!serviceAccountString && isServer) {
-  try {
-    serviceAccountString = process.env.SERVICE_ACCOUNT_JSON ?? null;
-  } catch {
-    console.warn('⚠️ SERVICE_ACCOUNT_JSON not accessible (likely build stage)');
-  }
-}
-
-try {
-  if (!admin.apps.length) {
-    if (serviceAccountString) {
-      // Vercel-style stringified JSON in env var
-      const credentials = JSON.parse(serviceAccountString);
-      app = admin.initializeApp({
-        credential: admin.credential.cert(credentials),
-        projectId:
-          credentials.project_id || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      });
-      console.log('✅ Firebase Admin initialized via SERVICE_ACCOUNT_JSON');
-    } else {
-      // Fallback: local dev uses GOOGLE_APPLICATION_CREDENTIALS file
-      app = admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      });
-      console.log('🧩 Firebase Admin initialized via applicationDefault()');
-    }
-  } else {
+/* ───────────────────────────────
+   ⚙️ Initialize Firebase Admin
+─────────────────────────────── */
+function initFirebaseAdmin() {
+  if (admin.apps.length) {
+    // Already initialized
     app = admin.app();
     if (process.env.NODE_ENV === 'development') {
       console.log('🧩 Reusing existing Firebase Admin app');
     }
+    return;
   }
 
-  adminDb = getFirestore(app);
-} catch (error) {
-  console.error('❌ Failed to initialize Firebase Admin:', error);
+  try {
+    if (serviceAccountJson) {
+      // ✅ Preferred: Vercel/Firebase env var with stringified JSON
+      const credentials = JSON.parse(serviceAccountJson);
+      app = admin.initializeApp({
+        credential: admin.credential.cert(credentials),
+        projectId: credentials.project_id || projectId,
+      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Firebase Admin initialized via SERVICE_ACCOUNT_JSON');
+      }
+    } else {
+      // 🧩 Fallback: use local GOOGLE_APPLICATION_CREDENTIALS file
+      app = admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        projectId,
+      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🧩 Firebase Admin initialized via applicationDefault()');
+      }
+    }
+
+    db = getFirestore(app);
+  } catch (error) {
+    console.error('❌ Failed to initialize Firebase Admin:', error);
+    throw error;
+  }
 }
 
-/* ─────────────────────────────
-   ✅ Exports
-───────────────────────────── */
-export const dbAdmin: Firestore | null = adminDb;
-export { admin, app };
-export default app;
+/* ───────────────────────────────
+   🚀 Immediate Init (Safe Singleton)
+─────────────────────────────── */
+if (!admin.apps.length) {
+  initFirebaseAdmin();
+} else {
+  app = admin.app();
+  db = getFirestore(app);
+}
 
-/**
- * ✅ Safe getter for SSR/API routes
- */
+/* ───────────────────────────────
+   ✅ Safe Getters & Exports
+─────────────────────────────── */
+export { admin, app };
+
+/** Firestore singleton instance */
+export const dbAdmin: Firestore = db!;
+
+/** Helper to ensure DB is always available */
 export function getAdminDb(): Firestore {
-  if (!adminDb) throw new Error('Firebase Admin DB not initialized.');
-  return adminDb;
+  if (!db) {
+    initFirebaseAdmin();
+    db = getFirestore(admin.app());
+  }
+  return db;
 }
